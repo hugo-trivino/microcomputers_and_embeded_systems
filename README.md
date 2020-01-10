@@ -22,7 +22,7 @@ To see full description of the implementation please refer to the **Project_Repo
 | GO | Start Execution at given address | `GO <target addr>` | `GO 900` |
 | MDSP | Output Address and Memory Contents |`MDSP <Addr1> <Addr2>` | `MDSP 900 9D2` |
 | MM | Modify memory manually ,default size byte | `MM <addr>;<sz>` | `MM 700`<br>`MM 700;W` |
-| MS | Write bytes in memory in Hex or ASCII |`MS <addr> <data>` | `MS 600 'hi'`<br>`MS 600 35C`| 
+| MS | Write bytes in memory in Hex or ASCII | `MS <addr> <data>` | `MS 600 'hi'`<br>`MS 600 35C` | 
 | SORTW | Sort words in asc or desc order (A or D) in mem range | `SORTW <addr1> <addr2> <ord>` | `SORTW 600 600 D ` |
 | EXIT | Terminates Monitor Program |`EXIT` | `EXIT` |    
 
