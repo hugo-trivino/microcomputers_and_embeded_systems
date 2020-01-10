@@ -1,0 +1,12 @@
+# Welcome!
+## To the microcomputers and embedded systems repository.
+
+
+In this folder you will find the implementation of a monitor program that will be used as a tool for programming and troubleshooting applications written for the MC68000 family of microprocessors. This implementation consist of a shell written in assembly language that supports fourteen different debugging commands and it has the ability to handle the most common types of exceptions.
+
+
+This program can be run in [Easy68k Simulator](http://www.easy68k.com/)
+
+`BF <Addr1> <Addr2> <W>`
+`Example: BF $4000 $4500`
+

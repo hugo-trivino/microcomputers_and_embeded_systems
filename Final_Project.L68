@@ -1,0 +1,1537 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.12.29
+Created On: 4/27/2018 10:13:42 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :Final Project
+00000000                             3  * Written by :Hugo Trivino
+00000000                             4  * Date       :4/20/2018
+00000000                             5  * Description:This is the final project for the ECE 441 Class
+00000000                             6  *-----------------------------------------------------------
+00000000                             7  *--------------------------------------------------------------------
+00001000                             8      ORG    $1000
+00001000  =00000002                  9  READSTR     EQU     2
+00001000  =0000000D                 10  WRITESTRLF  EQU     13
+00001000  =0000000E                 11  WRITESTR    EQU     14
+00001000                            12  START:                          ; INITIALIZATION OF THE SYSTEM
+00001000  227C 00000000             13      MOVEA.L #0,  A1
+00001006  3E7C 3400                 14      MOVEA   #$3400,SP           ;THE STACK POINTER $3000+1K
+0000100A  237C 0000118A 0008        15      MOVE.L  #BUSERR, (8,A1)     ;INITIALIZATION OF EXCEPTION
+00001012  237C 000011EA 000C        16      MOVE.L  #ADDRERR, (12,A1)   ;VECTORS
+0000101A  237C 0000124A 0010        17      MOVE.L  #ILLADRERR,(16,A1)
+00001022  237C 000012C2 0014        18      MOVE.L  #DIV0ERR, (20,A1)
+0000102A  237C 000012FE 0018        19      MOVE.L  #CHKINSTERR,(24,A1)
+00001032  237C 00001286 0020        20      MOVE.L  #PRIVERR,(32,A1)
+0000103A  237C 0000133A 0028        21      MOVE.L  #LINEA,(40,A1)
+00001042  237C 00001376 002C        22      MOVE.L  #LINEF,(44,A1)
+0000104A                            23  *--------------------------------------------------------------------
+0000104A                            24  
+0000104A                            25  BASH:   
+0000104A  4240                      26      CLR     D0                          
+0000104C  43F9 00001A04             27      LEA     PROMPT,A1               
+00001052  103C 000E                 28      MOVE.B  #WRITESTR ,D0               
+00001056  4E4F                      29      TRAP    #15                 ;PRINTS MONITOR441>
+00001058  43F9 00001A12             30      LEA     BUFFINPUT,A1
+0000105E  103C 0002                 31      MOVE.B  #READSTR,D0                 
+00001062  4E4F                      32      TRAP    #15                 ;TAKES INPUT FROM USER
+00001064  4EB9 0000106C             33      JSR     PARSER              ;SENDS INPUT TO PARSER
+0000106A  60DE                      34      BRA     BASH                ;RETURNS TO LOOP
+0000106C                            35  *--------------------------------------------------------------------
+0000106C                            36  
+0000106C                            37  ;++++++++++++++++++++++++++++++++++++++++++++++
+0000106C                            38  ;                   PARSER
+0000106C                            39  ;----------------------------------------------
+0000106C                            40  ;INPUT  : A1 STARTING BUFFER OF USER INPUT
+0000106C                            41  ;         A1 ADDRESS OF FIRST STRING
+0000106C                            42  ;         A2 ADDRESS SECOND STRING
+0000106C                            43  ;OUTPUT : D0 = 0    IF EQUAL
+0000106C                            44  ;         D0 = 1    IF (A1)>(A2)
+0000106C                            45  ;         D0 = -1   IF (A1)>(A2)
+0000106C                            46  ;----------------------------------------------
+0000106C                            47  *--------------------------------------------------------------------
+0000106C                            48  
+0000106C                            49  PARSER:
+0000106C  45F9 00001A4D             50      LEA     COMP_TABL,A2        ;ARRAY OF COMMANDS NAMES -> A2
+00001072  720B                      51      MOVE.L  #11,D1              ;NUMBER OF FUNCTIONS INDEX ZERO
+00001074  740B                      52      MOVE.L  #11,D2              
+00001076                            53  *--------------------------------------------------------------------
+00001076                            54  LOOPARSE    
+00001076  4EB9 000010B8             55      JSR     CMPSTR              ;COMPARE THE INPUT WITH FIRST 
+0000107C  4A80                      56      TST.L   D0                  ;IF IS SMALLER THEN ERROR
+0000107E  6D00 002A                 57      BLT     PARSERERR           ;BECAUSE THEY ARE ORDERED
+00001082  6E00 0018                 58      BGT     NXFN                ;IF GREATER CAN STILL BE NEXT
+00001086  2002                      59      MOVE.L  D2,D0               ;IF EQUAL, 
+00001088  9041                      60      SUB     D1,D0               ;   CALCULATE OFFSET
+0000108A  45F9 00001AB2             61      LEA     COMP_ADDR,A2        ;BRING ARRAY OF ADDRESSES
+00001090  E348                      62      LSL     #1,D0               ;(OFFSET)*2 BECAUSE WORD ADDRESSES
+00001092  D4C0                      63      ADD     D0,A2               ;ADD OFFSET
+00001094  3452                      64      MOVEA   (A2),A2             ;BRING ADDRESS TO A2
+00001096  4E92                      65      JSR     (A2)                JUMP TO COMMAND
+00001098  6000 001C                 66      BRA     ENDPARSER
+0000109C                            67  *--------------------------------------------------------------------
+0000109C                            68  NXFN:
+0000109C  57C9 FFD8                 69      DBEQ    D1,LOOPARSE         ;LOOP UNTIL THERE ARE NOT MORE CMDS    
+000010A0  4EB9 000010AA             70      JSR PARSERERR               ;IF PASS THE ARRAY THEN PARSE ERROR
+000010A6  6000 000E                 71      BRA ENDPARSER               ;RETURN TO BASH
+000010AA                            72  PARSERERR:
+000010AA  43F9 00001B1B             73      LEA     STRWHAT,A1          
+000010B0  103C 000E                 74      MOVE.B  #WRITESTR ,D0
+000010B4  4E4F                      75      TRAP #15                    ;PRINT 'WHAT?'
+000010B6                            76  ENDPARSER:
+000010B6  4E75                      77      RTS
+000010B8                            78  *--------------------------------------------------------------------
+000010B8                            79  
+000010B8                            80  ;----------------------------------------------
+000010B8                            81  ;              END      PARSER
+000010B8                            82  ;++++++++++++++++++++++++++++++++++++++++++++++    
+000010B8                            83      
+000010B8                            84  
+000010B8                            85  ;++++++++++++++++++++++++++++++++++++++++++++++
+000010B8                            86  ;                   CMPSTR
+000010B8                            87  ;----------------------------------------------
+000010B8                            88  ;INPUT  : A1 ADDRESS OF FIRST STRING
+000010B8                            89  ;         A2 ADDRESS SECOND STRING NULL TERMINATED
+000010B8                            90  ;OUTPUT : D0 = 0    IF EQUAL
+000010B8                            91  ;         D0 = 1    IF (A1)>(A2)
+000010B8                            92  ;         D0 = -1   IF (A1)>(A2)
+000010B8                            93  ;         A2 AT END OF BUFFER + 1 
+000010B8                            94  ;----------------------------------------------
+000010B8                            95  *--------------------------------------------------------------------
+000010B8                            96  
+000010B8                            97  CMPSTR:     
+000010B8  48A7 0010                 98      MOVEM   A3,-(SP)            
+000010BC  3649                      99      MOVEA   A1, A3              ;SAVE START OF USER INPUT
+000010BE                           100  CMPSTRNX:
+000010BE  B70A                     101      CMPM.B  (A2)+,(A3)+         ;CMP INPUT BUFFER WITH CMD STRING
+000010C0  6D00 0010                102      BLT     CMPSTRLESS          ;IF IS LESS RETURN TO PARSER D0 =-1
+000010C4  6E00 0012                103      BGT     CMPSTRGREATER       ;IF IS LESS RETURN TO PARSER D0 = 1
+000010C8  4A12                     104      TST.B   (A2)
+000010CA  66F2                     105      BNE     CMPSTRNX            ;ITERATE UNTIL END OF CMD STRING
+000010CC  4280                     106      CLR.L   D0                  ;IF EQUAL TEXT RETURN WITH   D0 = 0
+000010CE  6000 000E                107      BRA     ENDCMPSTR   
+000010D2                           108  *--------------------------------------------------------------------    
+000010D2                           109  CMPSTRLESS:
+000010D2  70FF                     110      MOVE.L  #-1,D0
+000010D4  6000 0008                111      BRA     ENDCMPSTR
+000010D8                           112  CMPSTRGREATER:
+000010D8  7001                     113      MOVE.L  #$1,D0
+000010DA  6000 0002                114      BRA     ENDCMPSTR
+000010DE                           115  ENDCMPSTR:
+000010DE  4C9F 0800                116      MOVEM   (SP)+,A3
+000010E2                           117  NXCMPSTR:
+000010E2  4A1A                     118      TST.B   (A2)+
+000010E4  66FC                     119      BNE     NXCMPSTR
+000010E6  4E75                     120      RTS
+000010E8                           121  *--------------------------------------------------------------------
+000010E8                           122  
+000010E8                           123  ;----------------------------------------------
+000010E8                           124  ;              END      CMPSTR
+000010E8                           125  ;++++++++++++++++++++++++++++++++++++++++++++++ 
+000010E8                           126   
+000010E8                           127  ;++++++++++++++++++++++++++++++++++++++++++++++
+000010E8                           128  ;                  ASCI2HX
+000010E8                           129  ;----------------------------------------------
+000010E8                           130  ;INPUT  : A1 ADDRESS OF ASCII NULL OR SPACE TERMINATED
+000010E8                           131  ;OUTPUT : D0 = # OF CHARS CONVERTED
+000010E8                           132  ;             
+000010E8                           133  ;         D0 = -1   IF ERROR
+000010E8                           134  ;         D1 = ANSWER
+000010E8                           135  ;         A1 AT END OF BUFFER + 1 
+000010E8                           136  ;----------------------------------------------
+000010E8                           137  ASCI2HX:     
+000010E8  48E7 3020                138      MOVEM.L D2-D3/A2,-(SP)
+000010EC  4280                     139      CLR.L   D0
+000010EE  4281                     140      CLR.L   D1
+000010F0  4282                     141      CLR.L   D2
+000010F2  1411                     142      MOVE.B  (A1),D2
+000010F4  6700 0048                143      BEQ     ASCI2HXERR
+000010F8  0C11 0024                144      CMP.B   #$24,(A1)
+000010FC  6600 0004                145      BNE     ASCI2HXNOTDOL
+00001100  5249                     146      ADD     #1,A1
+00001102                           147  ASCI2HXNOTDOL:
+00001102  1619                     148      MOVE.B   (A1)+,D3
+00001104  4242                     149      CLR     D2
+00001106  45F9 00001B23            150      LEA     STRASCII,A2
+0000110C                           151  ASCI2HXLOOP:
+0000110C  B632 2000                152      CMP.B   (A2,D2),D3
+00001110  6700 000E                153      BEQ     ASCI2HXNXTST
+00001114  4A32 2000                154      TST.B   (A2,D2)
+00001118  6700 0024                155      BEQ     ASCI2HXERR
+0000111C  5242                     156      ADDQ    #1,D2
+0000111E  60EC                     157      BRA     ASCI2HXLOOP
+00001120                           158  ASCI2HXNXTST:
+00001120  D242                     159      ADD     D2,D1
+00001122  5240                     160      ADDQ    #1,D0
+00001124  B03C 0008                161      CMP.B   #8,D0
+00001128  6E00 0014                162      BGT     ASCI2HXERR
+0000112C  4A11                     163      TST.B   (A1)
+0000112E  6700 0012                164      BEQ     ENDASCI2HXNULL
+00001132  0C11 0020                165      CMP.B   #$20,(A1)
+00001136  6700 0008                166      BEQ     ENDASCI2HX
+0000113A  E981                     167      ASL.L   #4,D1
+0000113C  60C4                     168      BRA     ASCI2HXNOTDOL
+0000113E                           169  ASCI2HXERR:
+0000113E  70FF                     170      MOVE.L  #-1,D0
+00001140                           171  ENDASCI2HX:
+00001140  5249                     172      ADD     #1,A1
+00001142                           173  ENDASCI2HXNULL:
+00001142  4CDF 040C                174      MOVEM.L (SP)+,D2-D3/A2
+00001146  4E75                     175      RTS
+00001148                           176  ;----------------------------------------------
+00001148                           177  ;              END      ASCII2HEX
+00001148                           178  ;++++++++++++++++++++++++++++++++++++++++++++++ 
+00001148                           179  
+00001148                           180  
+00001148                           181  
+00001148                           182   
+00001148                           183  ;++++++++++++++++++++++++++++++++++++++++++++++
+00001148                           184  ;                  HX2ASCI
+00001148                           185  ;----------------------------------------------
+00001148                           186  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+00001148                           187  ;         D0 = HEX NUMBER
+00001148                           188  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+00001148                           189  ;OUTPUT :                  
+00001148                           190  ;         D0: UNCHANGED
+00001148                           191  ;         D1: UNCHANGED
+00001148                           192  ;         A1 AT END OF BUFFER +SPACE + 1 
+00001148                           193  ;----------------------------------------------
+00001148                           194  HX2ASCI:     
+00001148  48E7 E000                195      MOVEM.L D0-D2,-(SP)
+0000114C  D2C1                     196      ADD     D1,A1
+0000114E  4282                     197      CLR.L   D2
+00001150  1400                     198      MOVE.B  D0,D2
+00001152  0202 000F                199      ANDI.B  #$0F,D2
+00001156  12BC 0020                200      MOVE.B  #$20,(A1)
+0000115A                           201  HX2ASCINX: 
+0000115A  0402 0009                202      SUBI.B  #$9,D2
+0000115E  6E00 000A                203      BGT     HX2ASCIGT
+00001162  0602 0039                204      ADDI.B  #$39,D2
+00001166  6000 000A                205      BRA     HX2ASCINXTST
+0000116A                           206  HX2ASCIGT:
+0000116A  0602 0040                207      ADDI.B  #$40,D2
+0000116E  6000 0002                208      BRA     HX2ASCINXTST
+00001172                           209  HX2ASCINXTST:
+00001172  1302                     210      MOVE.B  D2,-(A1)
+00001174  E898                     211      ROR.L   #$4,D0
+00001176  1400                     212      MOVE.B  D0,D2
+00001178  0202 000F                213      ANDI.B  #$0F,D2 
+0000117C  5301                     214      SUBI.B  #1,D1   
+0000117E  66DA                     215      BNE     HX2ASCINX
+00001180  4CDF 0007                216      MOVEM.L (SP)+,D0-D2
+00001184  D2C1                     217      ADD     D1,A1
+00001186  5249                     218      ADD     #1,A1
+00001188  4E75                     219      RTS
+0000118A                           220  ;----------------------------------------------
+0000118A                           221  ;              END      HX2ASCI
+0000118A                           222  ;++++++++++++++++++++++++++++++++++++++++++++++ 
+0000118A                           223  
+0000118A                           224  
+0000118A                           225  
+0000118A                           226  
+0000118A                           227  
+0000118A                           228  ;****************************************************************
+0000118A                           229  ;****************************************************************
+0000118A                           230  ;****************************************************************
+0000118A                           231  ;****************************************************************
+0000118A                           232  ;*                         EXCEPTIONS!
+0000118A                           233  ;****************************************************************
+0000118A                           234  ;****************************************************************
+0000118A                           235  ;****************************************************************
+0000118A                           236  ;****************************************************************
+0000118A                           237  ;--------------------------------------------------------------------
+0000118A                           238  BUSERR:
+0000118A                           239      
+0000118A  48E7 C040                240      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+0000118E  43F9 00001F03            241      LEA     SSWINTSTR,A1        ;BUFFER TO SAVE THE ASCII OF THE SSW
+00001194  302F 000C                242      MOVE.W  (12,SP),D0          ;GET SSW FROM STACK FRAME
+00001198  323C 0004                243      MOVE.W  #4,D1               ;CONVERT 4 DIGITS (WORD) TO ASCII
+0000119C  4EB8 1148                244      JSR     HX2ASCI             ;ASCII CONVERTION
+000011A0  43F9 00001F0B            245      LEA     BASTR,A1            ;BUFFER TO SAVE THE ASCII OF THE BA
+000011A6  202F 000E                246      MOVE.L  (14,SP),D0          ;GET BUS ADDRESS FROM STACK FRAME
+000011AA  323C 0008                247      MOVE.W  #8,D1
+000011AE  4EB8 1148                248      JSR     HX2ASCI             ;CONVERT 8 DIG (LONG) BA TO ASCII
+000011B2  43F9 00001F17            249      LEA     IRSTR,A1            ;BUFFER TO SAVE THE ASCII OF THE IR
+000011B8  202F 0012                250      MOVE.L  (18,SP),D0          ;GET IR FROM STACK FRAME
+000011BC  323C 0008                251      MOVE.W  #8,D1
+000011C0  4EB8 1148                252      JSR     HX2ASCI             ;CONVERT 8 DIG (LONG) BA TO ASCII
+000011C4  43F9 00001EE2            253      LEA     BUSERRSTR,A1        ;
+000011CA  103C 000E                254      MOVE.B  #WRITESTR,D0
+000011CE  4E4F                     255      TRAP    #15                 ;PRINT BUS ERROR STRING
+000011D0  43F9 00001EFF            256      LEA     SSWSTR,A1
+000011D6  103C 000D                257      MOVE.B  #WRITESTRLF,D0      ;PRINT SSW,BA,IR
+000011DA  4E4F                     258      TRAP    #15 
+000011DC  4CDF 0203                259      MOVEM.L (SP)+,D0-D1/A1
+000011E0  4EB9 000015AA            260      JSR     CMDDF               ;GET DF OUTPUT
+000011E6  6000 FE18                261      BRA     START               ;RESTART PROGRAM
+000011EA                           262  
+000011EA                           263  ;--------------------------------------------------------------------
+000011EA                           264  ADDRERR:
+000011EA  48E7 C040                265      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+000011EE  43F9 00001F03            266      LEA     SSWINTSTR,A1        ;BUFFER TO SAVE THE ASCII OF THE SSW
+000011F4  302F 000C                267      MOVE.W  (12,SP),D0          ;GET SSW FROM STACK FRAME
+000011F8  323C 0004                268      MOVE.W  #4,D1               ;CONVERT 4 DIGITS (WORD) TO ASCII
+000011FC  4EB8 1148                269      JSR     HX2ASCI             ;ASCII CONVERTION
+00001200  43F9 00001F0B            270      LEA     BASTR,A1            ;BUFFER TO SAVE THE ASCII OF THE BA
+00001206  202F 000E                271      MOVE.L  (14,SP),D0          ;GET BUS ADDRESS FROM STACK FRAME
+0000120A  323C 0008                272      MOVE.W  #8,D1
+0000120E  4EB8 1148                273      JSR     HX2ASCI             ;CONVERT 8 DIG (LONG) BA TO ASCII
+00001212  43F9 00001F17            274      LEA     IRSTR,A1            ;BUFFER TO SAVE THE ASCII OF THE IR
+00001218  202F 0012                275      MOVE.L  (18,SP),D0          ;GET IR FROM STACK FRAME
+0000121C  323C 0008                276      MOVE.W  #8,D1
+00001220  4EB8 1148                277      JSR     HX2ASCI             ;CONVERT 8 DIG (LONG) BA TO ASCII
+00001224  43F9 00001EF0            278      LEA     ADDRERRSTR,A1        ;
+0000122A  103C 000E                279      MOVE.B  #WRITESTR,D0
+0000122E  4E4F                     280      TRAP    #15                 ;PRINT ADDRESS ERROR STRING
+00001230  43F9 00001EFF            281      LEA     SSWSTR,A1
+00001236  103C 000D                282      MOVE.B  #WRITESTRLF,D0      ;PRINT SSW,BA,IR
+0000123A  4E4F                     283      TRAP    #15 
+0000123C  4CDF 0203                284      MOVEM.L (SP)+,D0-D1/A1
+00001240  4EB9 000015AA            285      JSR     CMDDF               ;GET DF OUTPUT
+00001246  6000 FDB8                286      BRA     START               ;RESTART PROGRAM
+0000124A                           287  ;--------------------------------------------------------------------
+0000124A                           288  ILLADRERR:
+0000124A  48E7 C040                289      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+0000124E  43F9 00001F17            290      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+00001254  202F 000E                291      MOVE.L  (14,SP),D0
+00001258  323C 0008                292      MOVE.W  #8,D1
+0000125C  4EB8 1148                293      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+00001260  43F9 00001F3C            294      LEA     ILLERRSTR ,A1       ;PRINT ILLEGAL INSTRUCTION ERROR STR 
+00001266  103C 000E                295      MOVE.B  #WRITESTR,D0
+0000126A  4E4F                     296      TRAP    #15                 
+0000126C  43F9 00001F17            297      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+00001272  103C 000D                298      MOVE.B  #WRITESTRLF,D0
+00001276  4E4F                     299      TRAP    #15 
+00001278  4CDF 0203                300      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+0000127C  4EB9 000015AA            301      JSR     CMDDF               ;GET DF OUTPUT
+00001282  6000 FD7C                302      BRA     START               ;RESTART PROGRAM
+00001286                           303  
+00001286                           304  ;--------------------------------------------------------------------
+00001286                           305  PRIVERR:
+00001286  48E7 C040                306      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+0000128A  43F9 00001F17            307      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+00001290  202F 000E                308      MOVE.L  (14,SP),D0
+00001294  323C 0008                309      MOVE.W  #8,D1
+00001298  4EB8 1148                310      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+0000129C  43F9 00001F5E            311      LEA     PRVERRSTR ,A1       ;PRINT PRIVILEGE VIOLATION ERROR STR 
+000012A2  103C 000E                312      MOVE.B  #WRITESTR,D0
+000012A6  4E4F                     313      TRAP    #15                 
+000012A8  43F9 00001F17            314      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+000012AE  103C 000D                315      MOVE.B  #WRITESTRLF,D0
+000012B2  4E4F                     316      TRAP    #15 
+000012B4  4CDF 0203                317      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+000012B8  4EB9 000015AA            318      JSR     CMDDF               ;GET DF OUTPUT
+000012BE  6000 FD40                319      BRA     START               ;RESTART PROGRAM
+000012C2                           320  ;--------------------------------------------------------------------
+000012C2                           321  DIV0ERR:
+000012C2  48E7 C040                322      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+000012C6  43F9 00001F17            323      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+000012CC  202F 000E                324      MOVE.L  (14,SP),D0
+000012D0  323C 0008                325      MOVE.W  #8,D1
+000012D4  4EB8 1148                326      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+000012D8  43F9 00001F21            327      LEA     DIV0ERRSTR,A1       ;PRINT DIV0  ERROR STR 
+000012DE  103C 000E                328      MOVE.B  #WRITESTR,D0
+000012E2  4E4F                     329      TRAP    #15                 
+000012E4  43F9 00001F17            330      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+000012EA  103C 000D                331      MOVE.B  #WRITESTRLF,D0
+000012EE  4E4F                     332      TRAP    #15 
+000012F0  4CDF 0203                333      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+000012F4  4EB9 000015AA            334      JSR     CMDDF               ;GET DF OUTPUT
+000012FA  6000 FD04                335      BRA     START               ;RESTART PROGRAM
+000012FE                           336  
+000012FE                           337  ;--------------------------------------------------------------------
+000012FE                           338  CHKINSTERR:
+000012FE  48E7 C040                339      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+00001302  43F9 00001F17            340      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+00001308  202F 000E                341      MOVE.L  (14,SP),D0
+0000130C  323C 0008                342      MOVE.W  #8,D1
+00001310  4EB8 1148                343      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+00001314  43F9 00001F87            344      LEA     CHKERRSTR ,A1       ;PRINT CHK INSTRUCTION ERROR STR 
+0000131A  103C 000E                345      MOVE.B  #WRITESTR,D0
+0000131E  4E4F                     346      TRAP    #15                 
+00001320  43F9 00001F17            347      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+00001326  103C 000D                348      MOVE.B  #WRITESTRLF,D0
+0000132A  4E4F                     349      TRAP    #15 
+0000132C  4CDF 0203                350      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+00001330  4EB9 000015AA            351      JSR     CMDDF               ;GET DF OUTPUT
+00001336  6000 FCC8                352      BRA     START               ;RESTART PROGRAM
+0000133A                           353  
+0000133A                           354  ;--------------------------------------------------------------------
+0000133A                           355  LINEA:
+0000133A  48E7 C040                356      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+0000133E  43F9 00001F17            357      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+00001344  202F 000E                358      MOVE.L  (14,SP),D0
+00001348  323C 0008                359      MOVE.W  #8,D1
+0000134C  4EB8 1148                360      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+00001350  43F9 00001FA2            361      LEA     LINEASRT ,A1        ;PRINT LINEA EMULATION EXCEP 
+00001356  103C 000E                362      MOVE.B  #WRITESTR,D0
+0000135A  4E4F                     363      TRAP    #15                 
+0000135C  43F9 00001F17            364      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+00001362  103C 000D                365      MOVE.B  #WRITESTRLF,D0
+00001366  4E4F                     366      TRAP    #15 
+00001368  4CDF 0203                367      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+0000136C  4EB9 000015AA            368      JSR     CMDDF               ;GET DF OUTPUT
+00001372  6000 FC8C                369      BRA     START               ;RESTART PROGRAM
+00001376                           370  ;--------------------------------------------------------------------
+00001376                           371  LINEF:
+00001376  48E7 C040                372      MOVEM.L D0-D1/A1,-(SP)      ;SAVE ALL REGISTERS IN THE SSP
+0000137A  43F9 00001F17            373      LEA     IRSTR,A1            ;GET BUS ADDRESS FROM STACK FRAM
+00001380  202F 000E                374      MOVE.L  (14,SP),D0
+00001384  323C 0008                375      MOVE.W  #8,D1
+00001388  4EB8 1148                376      JSR     HX2ASCI             ;CONVERT BA TO ASCII
+0000138C  43F9 00001FBD            377      LEA     LINEFSRT ,A1        ;PRINT LINEF EMULATION EXCEP 
+00001392  103C 000E                378      MOVE.B  #WRITESTR,D0
+00001396  4E4F                     379      TRAP    #15                 
+00001398  43F9 00001F17            380      LEA     IRSTR,A1            ;PRINT PC LOCATION OF THE ERROR
+0000139E  103C 000D                381      MOVE.B  #WRITESTRLF,D0
+000013A2  4E4F                     382      TRAP    #15 
+000013A4  4CDF 0203                383      MOVEM.L (SP)+,D0-D1/A1      ;RECOVER STACK
+000013A8  4EB9 000015AA            384      JSR     CMDDF               ;GET DF OUTPUT
+000013AE  6000 FC50                385      BRA     START               ;RESTART PROGRAM
+000013B2                           386  ;--------------------------------------------------------------------
+000013B2                           387  ;****************************************************************
+000013B2                           388  ;****************************************************************
+000013B2                           389  ;****************************************************************
+000013B2                           390  ;****************************************************************
+000013B2                           391  ;*                         COMMANDS!
+000013B2                           392  ;****************************************************************
+000013B2                           393  ;****************************************************************
+000013B2                           394  ;****************************************************************
+000013B2                           395  ;****************************************************************
+000013B2                           396  
+000013B2                           397  
+000013B2                           398  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000013B2                           399  ;                  CMDBF
+000013B2                           400  ;----------------------------------------------------------------
+000013B2                           401  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+000013B2                           402  ;         D0 = HEX NUMBER
+000013B2                           403  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+000013B2                           404  ;OUTPUT :                  
+000013B2                           405  ;         D0: UNCHANGED
+000013B2                           406  ;         D1: UNCHANGED
+000013B2                           407  ;         A1 AT END OF BUFFER +SPACE + 1 
+000013B2                           408  ;----------------------------------------------------------------
+000013B2                           409  CMDBF:
+000013B2  5649                     410      ADD     #3,A1           ;GO TO THE START OF THE ADDRESSES
+000013B4  4280                     411      CLR.L   D0              ;
+000013B6  4EB9 0000192C            412      JSR     CAPTURE2ADDR    ;CAPTURE 2 EVEN ADDRESSES ->A2 & ->A3
+000013BC  4A00                     413      TST.B   D0
+000013BE  6D00 0632                414      BLT     SYNTAXERR       ;IF NOT TWO PROPER ADDRESSES ->ERROR
+000013C2  49F9 00001A3C            415      LEA     BUFFADDR,A4     ;SAVE ADDRESSES TO PRINT THEM LATER
+000013C8  28CA                     416      MOVE.L  A2,(A4)+        ;SAVE STARTING ADDRESS
+000013CA  28CB                     417      MOVE.L  A3,(A4)+        ;SAVE END ADDRESS
+000013CC  514C                     418      SUB     #8,A4           ;
+000013CE  4EB8 10E8                419      JSR     ASCI2HX         ;CONVERT THE WORD DATA TO HEX
+000013D2  4A00                     420      TST.B   D0              ;TEST IF IS A PROPER HEX
+000013D4  6D00 061C                421      BLT     SYNTAXERR       ;RETURN ERROR IF IS NOT
+000013D8                           422  ;--------------------------------------------------------------------    
+000013D8                           423  BFLOOP
+000013D8  34C1                     424      MOVE.W  D1,(A2)+        ;FILL MEMORY WITH THE WORD DATA
+000013DA  B6CA                     425      CMP     A2,A3           ;IF UPPER BOUND STILL GREATER
+000013DC  6EFA                     426      BGT     BFLOOP          ;THAN LOWER BOUND, LOOP
+000013DE  324C                     427      MOVEA   A4,A1           ;MEMORY IS FILLED, NOW PRINT ADDRESS
+000013E0  303C 0002                428      MOVE    #2,D0           ;TWO ADDRESSES
+000013E4  4EB9 00001974            429      JSR     PHYSICALADDR    ;PHYSICAL ADDRESS: XXXXXXXX XXXXXXXX
+000013EA  4E75                     430      RTS
+000013EC                           431  
+000013EC                           432      
+000013EC                           433  ;----------------------------------------------------------------
+000013EC                           434  ;              END      CMDBF
+000013EC                           435  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+000013EC                           436      
+000013EC                           437  
+000013EC                           438  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000013EC                           439  ;                  CMDBMOV
+000013EC                           440  ;----------------------------------------------------------------
+000013EC                           441  ;--------------------------------------------------------------------
+000013EC                           442  CMDBMOV:
+000013EC  5A49                     443      ADD     #5,A1               ;GO TO THE START OF THE ADDRESSES
+000013EE  303C 0001                444      MOVE    #1,D0               ;
+000013F2  4EB9 0000192C            445      JSR     CAPTURE2ADDR        ;CAPTURE 2 ADDRESSES ->A2 & ->A3
+000013F8  4A40                     446      TST     D0
+000013FA  6D00 05F6                447      BLT     SYNTAXERR           ;IF NOT TWO PROPER ADDRESSES ->ERROR
+000013FE  4EB8 10E8                448      JSR     ASCI2HX             ;CONVERT TO HEX THE DESTINATION ADDR
+00001402  4A40                     449      TST     D0
+00001404  6D00 05EC                450      BLT     SYNTAXERR           ;IF DEST IS NOT A PROPER HEX ->ERROR
+00001408  49F9 00001A3C            451      LEA     BUFFADDR,A4         ;SAVE THE ADDRESSES TO PRINT AT END
+0000140E                           452  ;--------------------------------------------------------------------
+0000140E  28CA                     453      MOVE.L  A2,(A4)+            ;SAVE STARTING ADDRESS
+00001410  28CB                     454      MOVE.L  A3,(A4)+            ;SAVE END ADDRESS
+00001412  28C1                     455      MOVE.L  D1,(A4)+            ;SAVE DESTINATION ADDRESS
+00001414  98FC 000C                456      SUB     #12,A4
+00001418  3241                     457      MOVEA   D1,A1               ;IN CASE DESTINATION IS IN BETWEEN    
+0000141A  300B                     458      MOVE    A3,D0               ;THE BOUNDARIES, WE HAVE TO TRANSFER
+0000141C  904A                     459      SUB     A2,D0               ;IN DESCENDING ORDER TO NOT LOSS DATA
+0000141E  924A                     460      SUB     A2,D1               ;OTHERWISE IS OK TO DO A ASCENDING
+00001420  6D00 0014                461      BLT     BMOVASC
+00001424  B041                     462      CMP     D1,D0
+00001426  6D00 000E                463      BLT     BMOVASC
+0000142A                           464  ;--------------------------------------------------------------------    
+0000142A                           465  BMOVDES:
+0000142A  D2C0                     466      ADD     D0,A1               ;IF DESC, ADD OFFSET DESTINATION
+0000142C                           467  BMOVDESLP:    
+0000142C  1323                     468      MOVE.B  -(A3),-(A1)         ;START FROM THE END OF THE BLOCK
+0000142E  5340                     469      SUBQ    #1,D0
+00001430  66FA                     470      BNE     BMOVDESLP           ;DO IT UNTIL THERE IS NOT MORE BYTES
+00001432  6000 0008                471      BRA     ENDBMOV             ;FINISH IF DONE
+00001436                           472  BMOVASC:    
+00001436  12DA                     473      MOVE.B  (A2)+,(A1)+         ;THIS IS ASCENDING ORDER
+00001438  5340                     474      SUBQ    #1,D0               ;DO IT UNTIL THERE IS NOT MORE BYTES
+0000143A  66FA                     475      BNE     BMOVASC             ;FINISH IF DONE
+0000143C                           476  ;--------------------------------------------------------------------
+0000143C                           477  ENDBMOV:
+0000143C  324C                     478      MOVEA    A4,A1              ;MOVE THE BEGGINING OF ADDRESSES
+0000143E  303C 0002                479      MOVE    #2,D0               ;PRINT TWO BOUNDARY ADDRESSES
+00001442  4EB9 00001974            480      JSR     PHYSICALADDR        ;PHYSICAL ADDRESS: XXXXXXXX XXXXXXXX
+00001448  303C 0001                481      MOVE    #1,D0               ;PRINT DESTINATION ADDRESS
+0000144C  4EB9 00001974            482      JSR     PHYSICALADDR        ;PHYSYCAL ADDRESS: XXXXXXXX
+00001452  4E75                     483      RTS
+00001454                           484  ;--------------------------------------------------------------------
+00001454                           485  ;----------------------------------------------------------------
+00001454                           486  ;              END      CMDBMOV
+00001454                           487  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+00001454                           488  
+00001454                           489  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001454                           490  ;                  CMDBSCH
+00001454                           491  ;----------------------------------------------------------------
+00001454                           492  ;--------------------------------------------------------------------
+00001454                           493  CMDBSCH:
+00001454  343C 0001                494      MOVE    #1,D2
+00001458  5A49                     495      ADD     #5,A1               ;GO TO THE START OF THE ADDRESSES
+0000145A  303C 0001                496      MOVE    #1,D0
+0000145E  4EB9 0000192C            497      JSR     CAPTURE2ADDR        ;CAPTURE 2 ADDRESSES ->A2 & ->A3
+00001464  4A40                     498      TST     D0
+00001466  6D00 058A                499      BLT     SYNTAXERR           ;IF NOT TWO PROPER ADDRESSES ->ERROR
+0000146A  49F9 00001A3C            500      LEA     BUFFADDR,A4         ;SAVE ADDRESSES TO PRINT LATER
+00001470  28CA                     501      MOVE.L  A2,(A4)+
+00001472  28CB                     502      MOVE.L  A3,(A4)+
+00001474  1019                     503      MOVE.B  (A1)+,D0            ;ERROR IF NOT STRING TO SEARCH
+00001476  6700 057A                504      BEQ     SYNTAXERR           ;
+0000147A  7227                     505      MOVE.L  #$27,D1             ;CHECK THAT STRING START WITH QUOTES
+0000147C  B001                     506      CMP.B   D1,D0               
+0000147E  6600 0572                507      BNE     SYNTAXERR           ;ERROR IF IT DOESN'T HAVE QUOTES
+00001482  2A49                     508      MOVE.L  A1,A5               ;SAVE STARTING ADDRESS OF INPUT
+00001484  200B                     509      MOVE.L  A3,D0               ;SAVE ENDING ADDRESS OF SEARCH TO CMP
+00001486                           510  ;--------------------------------------------------------------------
+00001486                           511  BSCHLOOP:
+00001486  4A42                     512      TST     D2                  ;THE FIRST TIME IS NOT EQUAL TO ZERO
+00001488  6700 0004                513      BEQ     BSCHLOOP2           ;THIS IS JUST TO INITIALIZE
+0000148C  534A                     514      SUB     #1,A2
+0000148E                           515  BSCHLOOP2:
+0000148E  B4C0                     516      CMPA    D0,A2               ;IS LOWER GREATER THAN UPPER BOUND?
+00001490  6E00 0022                517      BGT     BSCHNOTFOUND        ;WE FINISH WITH NO SUCCESS
+00001494  4242                     518      CLR     D2                  ;ELSE MAKE D2=0
+00001496  288A                     519      MOVE.L  A2 ,(A4)            ;
+00001498  224D                     520      MOVEA.L A5,A1
+0000149A                           521  ;--------------------------------------------------------------------
+0000149A                           522  BSCHLP:
+0000149A  B509                     523      CMPM.B   (A1)+,(A2)+        ;COMP ASCI FROM INPUT TO MEMORY RANGE
+0000149C  66E8                     524      BNE     BSCHLOOP            ;IF NOT EQUAL BEGIN FROM START +1
+0000149E  5242                     525      ADDQ    #1,D2               ;
+000014A0  B4C0                     526      CMPA    D0,A2               ;IS LOWER GREATER THAN UPPER BOUND?
+000014A2  6E00 0010                527      BGT     BSCHNOTFOUND        ;WE FINISH WITH NO SUCCESS
+000014A6  B211                     528      CMP.B   (A1),D1             ;IS THE NEXT CHAR IN INPUT A QUOTE?
+000014A8  6700 001C                529      BEQ     BSCHFOUND           ;WE FINISH IF THIS IS THAT CASE
+000014AC  4A11                     530      TST.B   (A1)                ;IS THE NEXT CHAR IN INPUT A NULL?
+000014AE  6700 0016                531      BEQ     BSCHFOUND           ;WE FINISH IF THIS IS THAT CASE
+000014B2  60E6                     532      BRA     BSCHLP              ;ELSE, REVIEW NEXT CHAR
+000014B4                           533  ;--------------------------------------------------------------------
+000014B4                           534  BSCHNOTFOUND:    
+000014B4  43F9 00001A3C            535      LEA     BUFFADDR,A1         ;IF NOT FOUND
+000014BA  303C 0002                536      MOVE    #2,D0               ;JUST PRINT THE RANGE
+000014BE  4EB9 00001974            537      JSR     PHYSICALADDR        ;PHYSICAL ADDRESS: XXXXXXXX XXXXXXXX
+000014C4  4E75                     538      RTS
+000014C6                           539  ;--------------------------------------------------------------------
+000014C6                           540  BSCHFOUND:
+000014C6  43F9 00001A3C            541      LEA     BUFFADDR,A1         ;IF FOUND, PRINT RANGE AND MATCH
+000014CC  7002                     542      MOVE.L  #2,D0
+000014CE  4EB9 00001974            543      JSR     PHYSICALADDR        ;PHYSICAL ADDRESS: XXXXXXXX XXXXXXXX
+000014D4  43F9 00001A12            544      LEA     BUFFINPUT,A1        
+000014DA  2014                     545      MOVE.L  (A4),D0             ;THIS IS THE ADDRESS WITH A MATCH
+000014DC  7208                     546      MOVE.L  #8,D1               
+000014DE  4EB8 1148                547      JSR     HX2ASCI             ;CONVERT IT IN ASCII TO PRINT
+000014E2  12FC 0020                548      MOVE.B  #$20,(A1)+          ;PRINT A SPACE IN FRONT
+000014E6  220A                     549      MOVE.L  A2,D1
+000014E8  2854                     550      MOVEA.L (A4),A4             ;START OF THE MATCHING STRING
+000014EA  12FC 0027                551      MOVE.B  #$27,(A1)+
+000014EE                           552  ;--------------------------------------------------------------------
+000014EE                           553  LOOPBSCH:
+000014EE  12DC                     554      MOVE.B  (A4)+,(A1)+         ;MOVE CHARS MATCHING STRING TO BUFFER
+000014F0  B8C1                     555      CMPA    D1,A4               ;SEE IF THE END OF STRING
+000014F2  6700 0010                556      BEQ     ENDBSCH             ;IF IT IS PRINT AND EXIT
+000014F6  60F6                     557      BRA     LOOPBSCH            ;ELSE KEEP LOOPING
+000014F8  2014                     558      MOVE.L  (A4),D0             ;
+000014FA  7208                     559      MOVE.L  #8,D1
+000014FC  4EB8 1148                560      JSR     HX2ASCI             ;CONVERT THE ADDRESS TO STRING
+00001500  12BC 0020                561      MOVE.B  #$20,(A1)           
+00001504                           562  ;--------------------------------------------------------------------
+00001504                           563  ENDBSCH:    
+00001504  12FC 0027                564      MOVE.B  #$27,(A1)+          ;ADD A QUOTE AT THE END
+00001508  12FC 0000                565      MOVE.B  #$0,(A1)+
+0000150C  43F9 00001A12            566      LEA     BUFFINPUT,A1        ;PRINT IN THE FOLLOWING FORMAT
+00001512  103C 000D                567      MOVE.B  #WRITESTRLF,D0      ;XXXXXXXX 'STR'
+00001516  4E4F                     568      TRAP    #15
+00001518  4E75                     569      RTS
+0000151A                           570  ;--------------------------------------------------------------------
+0000151A                           571  ;              END      CMDBSCH
+0000151A                           572  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+0000151A                           573  
+0000151A                           574  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+0000151A                           575  ;                  CMDBTST
+0000151A                           576  ;----------------------------------------------------------------
+0000151A                           577  ;--------------------------------------------------------------------
+0000151A                           578  CMDBTST:
+0000151A  5A49                     579      ADD     #5,A1               ;START FROM BEGGINNING OF ADDRESSES
+0000151C  303C 0000                580      MOVE    #0,D0
+00001520  4EB9 0000192C            581      JSR     CAPTURE2ADDR        ;CAPTURE 2 EVEN ADDRESSES ->A2 &->A3
+00001526  4A00                     582      TST.B   D0
+00001528  6D00 04C8                583      BLT     SYNTAXERR           ;ERROR IF NOT PROPER ADDRESSES
+0000152C  220B                     584      MOVE.L  A3,D1               ;MOVE UPPER BOUND TO D1
+0000152E  49F9 00001A3C            585      LEA     BUFFADDR,A4         ;SAVE THE ADDRESSES TO PRINT AT END
+00001534  28CA                     586      MOVE.L  A2,(A4)+            ;SAVE LOWER BOUND
+00001536  28CB                     587      MOVE.L  A3,(A4)+            ;SAVE UPPER BOUND
+00001538  514C                     588      SUB     #8,A4
+0000153A  47F9 00001ADE            589      LEA     TESTBTST,A3         ;BRING THE ARRAY OF TEST WORDS
+00001540                           590  ;--------------------------------------------------------------------
+00001540                           591  NEXTBTST:
+00001540  301B                     592      MOVE.W  (A3)+,D0            ;TEST WORD->D0 (E.G AAAA OR 5555)
+00001542  3480                     593      MOVE.W  D0,(A2)             ;TST WORD ->MEM[A2] (WRITE)
+00001544  3412                     594      MOVE.W  (A2),D2             ; MEM[A2] -> D2     (READ)
+00001546  B440                     595      CMP.W   D0,D2               ;COMPARE WRITTEN WITH READ
+00001548  6600 0016                596      BNE     BTSTERR             ;PRINT ERROR IF THEY ARE NOT SAME
+0000154C  4A52                     597      TST.W   (A2)                ;LAST WORD IS 0000, IS THIS LAST?
+0000154E  66F0                     598      BNE     NEXTBTST            ;IF NOT TEST THE OTHER WORDS
+00001550  B24A                     599      CMP.W   A2,D1               ;IS THIS THE UPPER BOUND IN MEMORY?
+00001552  6D00 0048                600      BLT     ENDBTST             ;THEN FINISH TEST
+00001556  544A                     601      ADD     #2,A2               ;ELSE MOVE A WORD IN MEMORY
+00001558  47F9 00001ADE            602      LEA     TESTBTST,A3         ;LOAD LIST OF WORDS IN A3
+0000155E  60E0                     603      BRA     NEXTBTST            ;TEST ALL WORDS IN NEXT LOCATION
+00001560                           604  ;--------------------------------------------------------------------
+00001560                           605  BTSTERR:
+00001560  43F9 00001B06            606      LEA     WROTEBTST,A1        ;SAVE IN ASCII WHAT WE WROTE IN ERR
+00001566  323C 0004                607      MOVE    #4,D1
+0000156A  4EB8 1148                608      JSR     HX2ASCI
+0000156E  43F9 00001B10            609      LEA     READBTST ,A1        ;SAVE IN ASCII WHAT WE READ IN ERR
+00001574  3002                     610      MOVE    D2,D0
+00001576  323C 0004                611      MOVE    #4,D1
+0000157A  4EB8 1148                612      JSR     HX2ASCI
+0000157E  43F9 00001AF7            613      LEA     BTSTERRADDR ,A1     ;SAVE IN ASCII ADDRESS OF ERR
+00001584  200A                     614      MOVE.L  A2,D0    
+00001586  323C 0008                615      MOVE    #8,D1
+0000158A  4EB8 1148                616      JSR     HX2ASCI
+0000158E  43F9 00001AED            617      LEA     BTSTERRSTR ,A1      ;FAILED AT XXXXXXXX
+00001594  303C 000D                618      MOVE    #WRITESTRLF,D0      ;WROTE=XXXX READ=XXXX 
+00001598  4E4F                     619      TRAP    #15                 ;(WITHOUT <CR>)
+0000159A  4E75                     620      RTS
+0000159C                           621  ;--------------------------------------------------------------------
+0000159C                           622  
+0000159C                           623  ENDBTST:
+0000159C  324C                     624      MOVEA   A4,A1               ;IF TEST IS PASSED
+0000159E  303C 0002                625      MOVE    #2,D0               ;WE PRINT THE FOLLOWING
+000015A2  4EB9 00001974            626      JSR     PHYSICALADDR        ;PHYSICAL ADDRESS: XXXXXXXX XXXXXXXX
+000015A8  4E75                     627      RTS
+000015AA                           628  ;--------------------------------------------------------------------
+000015AA                           629  ;              END      CMDBTST
+000015AA                           630  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+000015AA                           631  
+000015AA                           632  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000015AA                           633  ;                  CMDDF
+000015AA                           634  ;----------------------------------------------------------------
+000015AA                           635  
+000015AA                           636  ;--------------------------------------------------------------------
+000015AA                           637  CMDDF:
+000015AA  48E7 FFFF                638      MOVEM.L D0-D7/A0-A7,-(SP)   ;SAVE ALL ORIGINAL REGISTERS
+000015AE  2A0F                     639      MOVE.L  A7,D5               ;SAVE THE STACK POINTER IN D5
+000015B0  0445 0040                640      SUBI    #64,D5              ;SUB THE REGISTERS THAT WE STORED
+000015B4  4E69                     641      MOVE.L  USP,A1              ;MOVE THE USER STACK POINTER A1
+000015B6  2C09                     642      MOVE.L  A1,D6               ;MAKE A COPY OF THE USP ->D6
+000015B8  40C3                     643      MOVE    SR,D3               ;COPY SR IN D3
+000015BA  283C 000015AA            644      MOVE.L  #CMDDF,D4           ;PRINT
+000015C0  43F9 00001B16            645      LEA     DFSTRING,A1         ;PRINT :' PC='
+000015C6  103C 000E                646      MOVE.B  #WRITESTR ,D0
+000015CA  4E4F                     647      TRAP    #15
+000015CC                           648  ;--------------------------------------------------------------------
+000015CC  43F9 00001A12            649      LEA     BUFFINPUT,A1        ;CONVERT HEX TO ASCII INTO BUFFER
+000015D2  323C 0008                650      MOVE    #8,D1               ;LONG REGISTER PC 
+000015D6  2004                     651      MOVE.L  D4,D0               ;CONVERTING TO ASCII
+000015D8  4EB8 1148                652      JSR     HX2ASCI             ;
+000015DC  12BC 0000                653      MOVE.B  #$00,(A1)           ;PRINT PC IN NULL TERMINATED ASCII
+000015E0  43F9 00001A12            654      LEA     BUFFINPUT,A1        ;
+000015E6  103C 000E                655      MOVE.B  #WRITESTR ,D0       ; BY HERE IS PC=XXXXXXXX
+000015EA  4E4F                     656      TRAP    #15
+000015EC                           657  ;--------------------------------------------------------------------
+000015EC  243C 2053523D            658      MOVE.L  #$2053523D,D2       ;PRINT :' SR='
+000015F2  323C 0004                659      MOVE    #4,D1               ;WORD REGISTER SR
+000015F6  2003                     660      MOVE.L  D3,D0               ;
+000015F8  4EB9 0000168C            661      JSR     DFHELPER            ;CONV HX2ASCII AND ADD TO BUFFER
+000015FE  243C 2055533D            662      MOVE.L  #$2055533D,D2       ;PRINT :' US='
+00001604  323C 0008                663      MOVE    #8,D1               ;LONG REGISTER US
+00001608  2006                     664      MOVE.L  D6,D0
+0000160A  4EB9 0000168C            665      JSR     DFHELPER            ;CONV HX2ASCII AND ADD TO BUFFER
+00001610  243C 2053533D            666      MOVE.L  #$2053533D,D2       ;PRINT :' SS='
+00001616  2005                     667      MOVE.L  D5,D0               ;LONG REGISTER SS
+00001618  4EB9 0000168C            668      JSR     DFHELPER            ;CONV HX2ASCII AND ADD TO BUFFER
+0000161E  43F9 00001A12            669      LEA     BUFFINPUT,A1        ;
+00001624  12BC 0000                670      MOVE.B  #$00,(A1)
+00001628  103C 000D                671      MOVE.B  #WRITESTRLF ,D0     ;PC=XXXXXXXXX SR=XXXX US=XXXXXX...
+0000162C  4E4F                     672      TRAP    #15
+0000162E                           673  ;--------------------------------------------------------------------
+0000162E  284F                     674      MOVE.L  SP,A4               ;SP ->A4
+00001630  363C 0004                675      MOVE    #4,D3               ;ITERATE FOUR TIMES
+00001634  243C 2044303D            676      MOVE.L  #$2044303D,D2       ;START FROM ' D0='
+0000163A  6100 0030                677      BSR     DFLOOP              ;THIS PRINTS ' D0=XXXX... D3=XXXX...
+0000163E  243C 2044343D            678      MOVE.L  #$2044343D,D2       ;START FROM ' D4='
+00001644  363C 0004                679      MOVE    #4,D3               ;ITERATE FOUR TIMES
+00001648  6100 0022                680      BSR     DFLOOP              ;THIS PRINTS ' D4=XXXX... D7=XXXX...
+0000164C  243C 2041303D            681      MOVE.L  #$2041303D,D2
+00001652  363C 0004                682      MOVE    #4,D3               ;ITERATE FOUR TIMES
+00001656  6100 0014                683      BSR     DFLOOP              ;THIS PRINTS ' A0=XXXX... A3=XXXX...
+0000165A  243C 2041343D            684      MOVE.L  #$2041343D,D2
+00001660  363C 0004                685      MOVE    #4,D3               ;ITERATE FOUR TIMES
+00001664  6100 0006                686      BSR     DFLOOP              ;THIS PRINTS ' A4=XXXX... A7=XXXX...
+00001668  6000 004E                687      BRA     ENDDF
+0000166C                           688  ;--------------------------------------------------------------------
+0000166C                           689  DFLOOP:    
+0000166C  43F9 00001A12            690      LEA     BUFFINPUT,A1        
+00001672  201C                     691      MOVE.L  (A4)+,D0
+00001674  4EB9 0000168C            692      JSR     DFHELPER            ;WRITES IN BUFFER CONSECUTIVE REG
+0000167A  0642 0100                693      ADD     #$100,D2            ;ADD 1 TO SECND CHAR (E.G 'D0'->'D1')
+0000167E  5343                     694      SUBI    #1,D3               ;COUNT ITERATIONS
+00001680  4A43                     695      TST     D3
+00001682  66E8                     696      BNE     DFLOOP
+00001684  4EB9 000019D6            697      JSR     PRINTENTER          ;PRINT <CR> AT THE END OF FOUR REGS
+0000168A  4E75                     698      RTS
+0000168C                           699  ;--------------------------------------------------------------------
+0000168C                           700  DFHELPER:
+0000168C  43F9 00001A12            701      LEA     BUFFINPUT,A1        ;START FROM BUFFER
+00001692  E19A                     702      ROL.L   #8,D2               ;MOVES THE UPPER BYTE TO LOWEST
+00001694  12C2                     703      MOVE.B  D2,(A1)+            ;MOVE LOWEST BYTE TO BUFFER
+00001696  E19A                     704      ROL.L   #8,D2               ;MOVES THE UPPER BYTE TO LOWEST
+00001698  12C2                     705      MOVE.B  D2,(A1)+            ;MOVE LOWEST BYTE TO BUFFER
+0000169A  E19A                     706      ROL.L   #8,D2               ;MOVES THE UPPER BYTE TO LOWEST
+0000169C  12C2                     707      MOVE.B  D2,(A1)+            ;MOVE LOWEST BYTE TO BUFFER
+0000169E  E19A                     708      ROL.L   #8,D2               ;MOVES THE UPPER BYTE TO LOWEST
+000016A0  12C2                     709      MOVE.B  D2,(A1)+            ;MOVE LOWEST BYTE TO BUFFER
+000016A2  4EB8 1148                710      JSR     HX2ASCI             ;CONVERT HX2ASCI THE REGISTER 0
+000016A6  12BC 0000                711      MOVE.B  #$00,(A1)           ;IT ADDS IT TO BUFF AND NULL TERMS
+000016AA  43F9 00001A12            712      LEA     BUFFINPUT,A1
+000016B0  103C 000E                713      MOVE.B  #WRITESTR ,D0       ;PRINT TOGETHER THE REG WITH NAME
+000016B4  4E4F                     714      TRAP    #15
+000016B6  4E75                     715      RTS
+000016B8                           716  ;--------------------------------------------------------------------
+000016B8                           717  ENDDF:
+000016B8  4CDF FFFF                718      MOVEM.L  (SP)+,D0-D7/A0-A7  ;RETURN ORIGINAL REGISTERS
+000016BC  4E75                     719      RTS
+000016BE                           720  ;--------------------------------------------------------------------
+000016BE                           721  ;              END      CMDDF
+000016BE                           722  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+000016BE                           723  
+000016BE                           724  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016BE                           725  ;                  CMDEXIT
+000016BE                           726  ;----------------------------------------------------------------
+000016BE                           727  
+000016BE                           728  ;--------------------------------------------------------------------
+000016BE                           729  CMDEXIT:
+000016BE  43F9 00001A66            730      LEA     EXITSTR,A1          ;BRINGS WORD 'EXIT'     
+000016C4  103C 000D                731      MOVE.B  #WRITESTRLF ,D0
+000016C8  4E4F                     732      TRAP    #15                 ;PRINTS 'EXIT'<CR> TO TERMINAL
+000016CA  6000 403A                733      BRA     END                 ;BRANCH TO END OF THE PROGRAM
+000016CE  4E75                     734      RTS
+000016D0                           735  ;--------------------------------------------------------------------
+000016D0                           736  ;              END      CMDEXIT
+000016D0                           737  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+000016D0                           738      
+000016D0                           739  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016D0                           740  ;                  CMDGO
+000016D0                           741  ;----------------------------------------------------------------
+000016D0                           742  ;--------------------------------------------------------------------
+000016D0                           743  CMDGO:
+000016D0  5649                     744      ADD     #3,A1               ;BRINGS STARTING ADDRESS
+000016D2  4EB8 10E8                745      JSR     ASCI2HX             ;CONVERT ADDRESS TO HEX
+000016D6  4A40                     746      TST     D0                  ;ERROR IF NOT PROPER ADDRESS
+000016D8  6D00 0318                747      BLT     SYNTAXERR           ;
+000016DC  2241                     748      MOVE.L  D1,A1               ;BRING ADDRESS TO A1
+000016DE  4ED1                     749      JMP     (A1)                ;JUMP TO ADDRESS
+000016E0  4E75                     750      RTS
+000016E2                           751  ;--------------------------------------------------------------------
+000016E2                           752  ;              END      CMDGO
+000016E2                           753  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016E2                           754  
+000016E2                           755  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016E2                           756  ;                  CMDHELP
+000016E2                           757  ;----------------------------------------------------------------
+000016E2                           758  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+000016E2                           759  ;         D0 = HEX NUMBER
+000016E2                           760  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+000016E2                           761  ;OUTPUT :                  
+000016E2                           762  ;         D0: UNCHANGED
+000016E2                           763  ;         D1: UNCHANGED
+000016E2                           764  ;         A1 AT END OF BUFFER +SPACE + 1 
+000016E2                           765  ;--------------------------------------------------------------------
+000016E2                           766  CMDHELP:
+000016E2  43F9 00001B34            767      LEA HELPDISPLAY,A1          ;BRINGS THE HELP MESSAGE
+000016E8  103C 000D                768      MOVE.B  #WRITESTRLF ,D0
+000016EC  4E4F                     769      TRAP #15                    ;PRINTS THE HELP MESSAGE
+000016EE  4E75                     770      RTS
+000016F0                           771  ;--------------------------------------------------------------------
+000016F0                           772  ;              END      CMDHELP
+000016F0                           773  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016F0                           774  
+000016F0                           775  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000016F0                           776  ;                  CMDMDSP
+000016F0                           777  ;----------------------------------------------------------------
+000016F0                           778  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+000016F0                           779  ;         D0 = HEX NUMBER
+000016F0                           780  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+000016F0                           781  ;OUTPUT :                  
+000016F0                           782  ;         D0: UNCHANGED
+000016F0                           783  ;         D1: UNCHANGED
+000016F0                           784  ;         A1 AT END OF BUFFER +SPACE + 1 
+000016F0                           785  ;--------------------------------------------------------------------
+000016F0                           786  
+000016F0                           787  CMDMDSP:
+000016F0  5A49                     788      ADD     #5,A1               ;STARTING OF THE ADDRESS(ES)
+000016F2  4EB8 10E8                789      JSR     ASCI2HX             ;CONVERT FIRST ADDRESS TO HEX
+000016F6  4A40                     790      TST     D0                  
+000016F8  6D00 02F8                791      BLT     SYNTAXERR           ;ERROR IF NOT PROPER HEX
+000016FC  3441                     792      MOVEA   D1,A2               ;MOVE LOWER BOUND TO A2
+000016FE  4A11                     793      TST.B   (A1)                ;IS THERE ANOTHER ADDRESS?
+00001700  6700 0018                794      BEQ     MDSP1ND             ;IF THERE IS NOT, DO DEFAULT
+00001704  4EB8 10E8                795      JSR     ASCI2HX             ;CONVERT SECOND ADDRESS TO HEX
+00001708  4A40                     796      TST     D0
+0000170A  6D00 02E6                797      BLT     SYNTAXERR           ;ERROR IF NOT PROPER HEX
+0000170E  3641                     798      MOVEA   D1,A3               ;MOVE UPPER BOUND TO A2
+00001710  B4CB                     799      CMP     A3,A2           
+00001712  6E00 02DE                800      BGT     SYNTAXERR           ;ERROR IF LOWER>UPPER ADDRESSES
+00001716  6000 0008                801      BRA     MDSPLOOP
+0000171A                           802  ;--------------------------------------------------------------------
+0000171A                           803  MDSP1ND
+0000171A  364A                     804      MOVEA   A2,A3               ;DEFAULT WILL SHOW $F ADDRESSES
+0000171C  D6FC 000F                805      ADD     #15,A3              ;MAKE UPPER BOUND A2+$F ->A3
+00001720                           806  MDSPLOOP
+00001720  43F9 00001A12            807      LEA     BUFFINPUT ,A1       ;BUFFER TO PRINT
+00001726  300A                     808      MOVE    A2, D0              ;BRING ADDRESS TO D0 TO PRINT
+00001728  323C 0008                809      MOVE    #8,D1
+0000172C  4EB8 1148                810      JSR     HX2ASCI             ;CONVERT ADDRESS TO ASCII
+00001730                           811  ;--------------------------------------------------------------------
+00001730  12FC 0020                812      MOVE.B  #$20,(A1)+          ;PLACE TWO SPACES BEFORE CONTENT
+00001734  12FC 0020                813      MOVE.B  #$20,(A1)+
+00001738  101A                     814      MOVE.B  (A2)+,D0            ;BRING CONTENT TO D0
+0000173A  323C 0002                815      MOVE    #2,D1
+0000173E  4EB8 1148                816      JSR     HX2ASCI             ;CONVERT TO ASCII BYTE SIZE
+00001742  12BC 0000                817      MOVE.B  #0,(A1)
+00001746  43F9 00001A12            818      LEA     BUFFINPUT,A1
+0000174C  103C 000D                819      MOVE.B  #WRITESTRLF ,D0     ;PRINT XXXXXXXXX  XX
+00001750  4E4F                     820      TRAP    #15
+00001752  B6CA                     821      CMP     A2,A3               ;LOWER <UPPER? KEEP GOING
+00001754  6ECA                     822      BGT     MDSPLOOP            ;ELSE, END
+00001756  4E75                     823      RTS
+00001758                           824  ;--------------------------------------------------------------------
+00001758                           825  
+00001758                           826  ;----------------------------------------------------------------
+00001758                           827  ;              END      CMDMDSP
+00001758                           828  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001758                           829  
+00001758                           830  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001758                           831  ;                  CMDMM
+00001758                           832  ;----------------------------------------------------------------
+00001758                           833  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+00001758                           834  ;         D0 = HEX NUMBER
+00001758                           835  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+00001758                           836  ;OUTPUT :                  
+00001758                           837  ;         D0: UNCHANGED
+00001758                           838  ;         D1: UNCHANGED
+00001758                           839  ;         A1 AT END OF BUFFER +SPACE + 1 
+00001758                           840  ;--------------------------------------------------------------------
+00001758                           841  CMDMM:
+00001758  5649                     842      ADD     #3,A1               ;START AT THE BEGGINING OF ADDRESS
+0000175A  4EB8 10E8                843      JSR     ASCI2HX             ;ADDRESS TO HEX
+0000175E  4A40                     844      TST     D0
+00001760  6D00 0290                845      BLT     SYNTAXERR           ;ERROR IF NOT PROPER ADDRESS
+00001764  4A11                     846      TST.B   (A1)                ;IF NOT OTHER ARG
+00001766  6700 001C                847      BEQ     MMBYTE              ;THEN MUST BE BYTE BY DEFAULT
+0000176A  C23C 00FE                848      AND.B   #$FE,D1             ;ELSE, MAKE SURE IS AN EVEN ADDRESS
+0000176E  2441                     849      MOVE.L  D1,A2               ;ADDRESS GIVEN ->A2
+00001770  0C51 3B57                850      CMP.W  #$3B57,(A1)          ;IS NEXT ARGUMENT ':W'??
+00001774  6700 0018                851      BEQ     MMWORD              ;THEN GO TO THE WORD ROUTINE
+00001778  0C51 3B4C                852      CMP.W  #$3B4C,(A1)          ;IS NEXT ARGUMENT ':L'??
+0000177C  6700 0018                853      BEQ     MMLONG              ;THEN GO TO THE LONG ROUTINE
+00001780  6000 0270                854      BRA     SYNTAXERR           ;ERROR IF NEITHER OF THOSE ARGS
+00001784                           855  ;--------------------------------------------------------------------
+00001784                           856  MMBYTE:
+00001784  3441                     857      MOVEA   D1,A2
+00001786  343C 0002                858      MOVE    #2,D2               ;SIZE TO WORK WITH IS 2 CHARS (BYTE)
+0000178A  6000 000E                859      BRA     MMLOOP              ;GO TO LOOP
+0000178E                           860  MMWORD 
+0000178E  343C 0004                861      MOVE    #4,D2               ;SIZE TO WORK WITH IS 4 CHARS (WORD)
+00001792  6000 0006                862      BRA     MMLOOP              ;GO TO LOOP
+00001796                           863  MMLONG:   
+00001796  343C 0008                864      MOVE    #8,D2               ;SIZE TO WORK WITH IS 8 CHARS (LONG)
+0000179A                           865  ;--------------------------------------------------------------------
+0000179A                           866  MMLOOP:
+0000179A  43F9 00001A12            867      LEA     BUFFINPUT ,A1       ;INPUT BUFFER
+000017A0  200A                     868      MOVE.L  A2, D0
+000017A2  323C 0008                869      MOVE    #8,D1
+000017A6  4EB8 1148                870      JSR     HX2ASCI             ;MOVE CURRENT ADDRESS IN HEX
+000017AA  12FC 0020                871      MOVE.B  #$20,(A1)+          ;PLUS SPACE
+000017AE  B43C 0002                872      CMP.B   #2,D2               ;IS THE BYTE?
+000017B2  6700 000E                873      BEQ     MMBYTPR             ;   PRINT A BYTE 
+000017B6  B43C 0004                874      CMP.B   #4,D2               ;   IS THE WORD?
+000017BA  6700 000C                875      BEQ     MMWRDPR             ;       PRINT A WORD 
+000017BE  6000 000E                876      BRA     MMLNGPR             ;ELSE LONG
+000017C2                           877  ;--------------------------------------------------------------------
+000017C2                           878  MMBYTPR:
+000017C2  1012                     879      MOVE.B  (A2),D0             ;MOVE FOR CONVERSION SIZE DATA BYTE
+000017C4  6000 000A                880      BRA     MMCONT
+000017C8                           881  MMWRDPR:
+000017C8  3012                     882      MOVE.W  (A2),D0             ;MOVE FOR CONVERSION SIZE DATA WORD
+000017CA  6000 0004                883      BRA     MMCONT
+000017CE                           884  MMLNGPR:
+000017CE  2012                     885      MOVE.L  (A2),D0             ;MOVE FOR CONVERSION SIZE DATA LONG
+000017D0                           886  ;--------------------------------------------------------------------
+000017D0                           887  MMCONT:
+000017D0  2202                     888      MOVE.L  D2,D1               ;MOVE THE SIZE FOR HEX CONVERSION
+000017D2  4EB8 1148                889      JSR     HX2ASCI             ;CONVERT
+000017D6  5349                     890      SUB     #1,A1           
+000017D8  22FC 203F2000            891      MOVE.L  #$203F2000,(A1)+    ;ADD ' ? ' AT THE END OF ADDRESS
+000017DE  43F9 00001A12            892      LEA     BUFFINPUT,A1        
+000017E4  103C 000E                893      MOVE.B  #WRITESTR,D0
+000017E8  4E4F                     894      TRAP    #15                 ;PRINT 'XXXXXXXX ? '
+000017EA  43F9 00001A12            895      LEA     BUFFINPUT,A1
+000017F0  103C 0002                896      MOVE.B  #READSTR,D0
+000017F4  4E4F                     897      TRAP    #15                 ;READ ANSWER FROM USER
+000017F6                           898  ;--------------------------------------------------------------------
+000017F6  43F9 00001A12            899      LEA     BUFFINPUT,A1        ;
+000017FC  1011                     900      MOVE.B  (A1),D0             ;MOVE THE FIRST BYTE OF THE ANSWER
+000017FE  B03C 002E                901      CMP.B   #$2E,D0             ;IF IS A DOT "." END THE COMMAND
+00001802  6700 0042                902      BEQ     ENDMM               ;   
+00001806  4A00                     903      TST.B   D0          
+00001808  6700 0032                904      BEQ     MMPASS              ;IF EMPTY MEANS THAT PASS W/O CHANGE
+0000180C  4EB8 10E8                905      JSR     ASCI2HX             ;ELSE, CONVERT TO HEX TO SAVE CHANGES
+00001810  4A40                     906      TST     D0
+00001812  6D00 01DE                907      BLT     SYNTAXERR           ;IF NOT A PROPER HEX PRINT ERR
+00001816  B43C 0002                908      CMP.B   #2,D2
+0000181A  6700 000E                909      BEQ     MMMVBYT             ;SAVE BYTE
+0000181E  B43C 0004                910      CMP.B   #4,D2
+00001822  6700 000C                911      BEQ     MMMVWRD             ;SAVE WORD
+00001826  6000 000E                912      BRA     MMMVLNG             ;SAVE LONG
+0000182A                           913  ;--------------------------------------------------------------------
+0000182A                           914  MMMVBYT
+0000182A  14C1                     915      MOVE.B  D1,(A2)+            ;SAVE BYTE
+0000182C  6000 FF6C                916      BRA     MMLOOP              ;KEEP GOING UNTIL A DOT "."
+00001830                           917  MMMVWRD
+00001830  34C1                     918      MOVE.W  D1,(A2)+            ;SAVE WORD
+00001832  6000 FF66                919      BRA     MMLOOP              ;KEEP GOING UNTIL A DOT "."
+00001836                           920  MMMVLNG
+00001836  24C1                     921      MOVE.L  D1,(A2)+            ;SAVE LONG
+00001838  6000 FF60                922      BRA     MMLOOP              ;KEEP GOING UNTIL A DOT "."
+0000183C                           923  ;--------------------------------------------------------------------
+0000183C                           924  MMPASS:
+0000183C  3602                     925      MOVE    D2,D3               ;IF PASSED, ADD TO THE ADDRESS
+0000183E  E243                     926      ASR     #1,D3               ;A2+1 OR +2 OR +4 DEPENDING OF D2
+00001840  D4C3                     927      ADD     D3,A2
+00001842  6000 FF56                928      BRA     MMLOOP              ;LOOP
+00001846                           929  ENDMM
+00001846  4E75                     930      RTS  
+00001848                           931  ;--------------------------------------------------------------------
+00001848                           932  ;--------------------------------------------------------------------
+00001848                           933  ;              END      CMDMM
+00001848                           934  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001848                           935  
+00001848                           936  
+00001848                           937  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001848                           938  ;                  CMDMS
+00001848                           939  ;----------------------------------------------------------------
+00001848                           940  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+00001848                           941  ;         D0 = HEX NUMBER
+00001848                           942  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+00001848                           943  ;OUTPUT :                  
+00001848                           944  ;         D0: UNCHANGED
+00001848                           945  ;         D1: UNCHANGED
+00001848                           946  ;         A1 AT END OF BUFFER +SPACE + 1 
+00001848                           947  ;--------------------------------------------------------------------
+00001848                           948  CMDMS:
+00001848  5649                     949      ADD     #3,A1               ;STARTING ADDRESS
+0000184A  4EB8 10E8                950      JSR     ASCI2HX             ;CONVERT FIRST ADDRESS TO HEX
+0000184E  4A40                     951      TST     D0          
+00001850  6D00 01A0                952      BLT     SYNTAXERR           ;ERROR IF NOT A PROPER ADDRESS
+00001854  5349                     953      SUB     #1,A1
+00001856  4A19                     954      TST.B   (A1)+
+00001858  6700 0198                955      BEQ     SYNTAXERR           ;IF NOT INPUT HEX OR ASCI IS ERR
+0000185C  3441                     956      MOVEA   D1, A2
+0000185E  0419 0027                957      SUBI.B  #$27,(A1)+          ;IF INPUT START WITH QUOTES IS ASCII
+00001862  6700 0042                958      BEQ     MSASCII             ;BRANCH TO ASCII
+00001866  0621 0027                959      ADDI.B  #$27,-(A1)          
+0000186A  0C11 0024                960      CMP.B   #$24,(A1)           ;IF HEX INPUT W/O '$' TAKE INPUT 
+0000186E  6600 0004                961      BNE     MSHEXNOTDOL         ;INMEDIATELY
+00001872  5249                     962      ADD     #1,A1               ;OTHERWISE ADD 1 BYTE AND TAKE INPUT
+00001874                           963  ;--------------------------------------------------------------------
+00001874                           964  MSHEXNOTDOL:
+00001874  3649                     965      MOVE    A1,A3               ;
+00001876                           966  MSHEX: 
+00001876  4EB8 10E8                967      JSR     ASCI2HX             ;CONVERT THE INPUT TO HEX
+0000187A  4A00                     968      TST.B   D0  
+0000187C  6D00 0174                969      BLT     SYNTAXERR           ;IF NOT A PROPER HEX PRINT ERR
+00001880  5240                     970      ADDQ    #1,D0               ;ADD ONE AND DIVIDE BY TWO TO GET
+00001882  E248                     971      LSR     #1,D0               ;ROOF OF # OF PAIR CHARACTERS
+00001884  3400                     972      MOVE    D0,D2               ;SINCE 2 NIBBLES PER BYTE
+00001886  5942                     973      SUB     #4,D2
+00001888                           974  ;--------------------------------------------------------------------
+00001888                           975  MSPOSSITION:
+00001888  4A42                     976      TST     D2                  ;ROTATE MSB TO THE LSB POSITION
+0000188A  6700 0008                977      BEQ     MSLOOPHX            ;IN ORDER TO WORK BYTE PER BYTE
+0000188E  E199                     978      ROL.L   #8,D1
+00001890  5242                     979      ADDQ    #1,D2
+00001892  60F4                     980      BRA     MSPOSSITION
+00001894                           981  ;--------------------------------------------------------------------
+00001894                           982  MSLOOPHX:
+00001894  E199                     983      ROL.L   #8,D1               ;WRITE EACH HEX BYTE INTO THE ADDR
+00001896  14C1                     984      MOVE.B  D1,(A2)+            ;GIVEN BY A2
+00001898  5300                     985      SUBI.B  #1,D0               ;UNTIL THE NUMBER OF PAIRS IS ZERO
+0000189A  66F8                     986      BNE     MSLOOPHX            ;LOOP
+0000189C  4A21                     987      TST.B   -(A1)               ;END IF THERE IS A NULL TERMINATION
+0000189E  6700 0020                988      BEQ     ENDMS               ;IN THE USER INPUT.
+000018A2  5249                     989      ADD     #1,A1
+000018A4  60D0                     990      BRA     MSHEX   
+000018A6                           991  ;--------------------------------------------------------------------
+000018A6                           992  MSASCII:
+000018A6  133C 0027                993      MOVE.B  #$27,-(A1)          ;ASCII IS EASIER, IS LAST CHAR A "'"?
+000018AA  5249                     994      ADD     #1,A1               ;
+000018AC                           995  MSASCIILOOP:
+000018AC  4A11                     996      TST.B   (A1)                ;IF CHAR IS NULL, STRING TERMINATED
+000018AE  6700 0010                997      BEQ     ENDMS
+000018B2  1011                     998      MOVE.B  (A1),D0
+000018B4  B03C 0027                999      CMP.B   #$27, D0            ;IF CHAR IS "'", STRING TERMINATED
+000018B8  6700 0006               1000      BEQ     ENDMS
+000018BC  14D9                    1001      MOVE.B  (A1)+,(A2)+         ;COPY FROM INPUT TO MEMORY
+000018BE  60EC                    1002      BRA     MSASCIILOOP
+000018C0                          1003  ENDMS
+000018C0  4E75                    1004      RTS
+000018C2                          1005  ;--------------------------------------------------------------------
+000018C2                          1006  ;              END      CMDMS
+000018C2                          1007  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000018C2                          1008  
+000018C2                          1009  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000018C2                          1010  ;                  CMDSORTW
+000018C2                          1011  ;----------------------------------------------------------------
+000018C2                          1012  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+000018C2                          1013  ;         D0 = HEX NUMBER
+000018C2                          1014  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+000018C2                          1015  ;OUTPUT :                  
+000018C2                          1016  ;         D0: UNCHANGED
+000018C2                          1017  ;         D1: UNCHANGED
+000018C2                          1018  ;         A1 AT END OF BUFFER +SPACE + 1 
+000018C2                          1019  ;--------------------------------------------------------------------
+000018C2                          1020  CMDSORTW:
+000018C2  5C49                    1021      ADD     #6,A1               ;BEGGINING OF ADDRESSES
+000018C4  303C 0000               1022      MOVE    #0,D0
+000018C8  4EB9 0000192C           1023      JSR     CAPTURE2ADDR        ;GET TWO EVEN ADDRESSES A2 & A3
+000018CE  4A40                    1024      TST     D0
+000018D0  6D00 0120               1025      BLT     SYNTAXERR           ;ERROR IF NOT PROPER ADDRESS
+000018D4  72FF                    1026      MOVE.L  #-1,D1              ;IS DESCENDENT D1=-1
+000018D6  0C11 0044               1027      CMP.B   #$44,(A1)           ;IF ARGUMENT IS 'D' DESCENDENT
+000018DA  6600 0004               1028      BNE     SORTWDESC
+000018DE  4281                    1029      CLR.L   D1                  ;IS ASCENDENT D1=0
+000018E0                          1030  ;--------------------------------------------------------------------
+000018E0                          1031  SORTWDESC:                      ;THIS IS PRETTY MUCH BUBBLE SORT
+000018E0  204A                    1032      MOVE.L  A2,A0
+000018E2  2448                    1033      MOVE.L  A0,A2               ; A2 IS THE STARTING ADDRESS
+000018E4                          1034  SORTBGNN:
+000018E4  204A                    1035      MOVE.L  A2,A0               ; START FROM BEGGINING AGAIN
+000018E6                          1036  SORTCMP:
+000018E6  B148                    1037      CMP.W   (A0)+,(A0)+         ; IF (ARRAY[i] < ARRAY[i+1])
+000018E8  621C                    1038      BHI.S   SWAPSORT            ; THEN SWAP THE VALUES
+000018EA  5588                    1039      SUBQ.L  #2,A0               ; ELSE: GO TO THE NEXT ELEMENT
+000018EC  B7C8                    1040      CMP.L   A0,A3               ; IF CURRENT ELEMENT == LAST?
+000018EE  66F6                    1041      BNE     SORTCMP             ; IF NOT, GO TO THE NEXT ELEMENT  
+000018F0  4A41                    1042      TST     D1                  ; IF THEY ARE EQUAL, YOU HAVE 
+000018F2  6700 001A               1043      BEQ     ENDSORT             ; ALL SORTED IN DESCENDING 
+000018F6  544B                    1044      ADD     #2,A3               ; IF WANT ASCENDING SWAP WHOLE ARRAY
+000018F8                          1045  ;--------------------------------------------------------------------
+000018F8                          1046  SORTASC:
+000018F8  3212                    1047      MOVE.W  (A2),D1             ;COPY FIRST VALUE IN D1
+000018FA  34E3                    1048      MOVE.W  -(A3),(A2)+         ;COPY LAST VALUE IN FIRST POSITION
+000018FC  3681                    1049      MOVE.W  D1,(A3)             ;COPY FIRST VALUE IN LAST POSITION
+000018FE  B6CA                    1050      CMP     A2,A3               ;DO IT UNTIL LOWER>UPPER BOUND
+00001900  6EF6                    1051      BGT     SORTASC
+00001902  6000 000A               1052      BRA     ENDSORT             ;WHEN THIS IS DONE YOU FINISH!
+00001906                          1053  ;--------------------------------------------------------------------
+00001906                          1054  SWAPSORT:
+00001906  2020                    1055      MOVE.L  -(A0),D0            ; PUT 2 WORDS IN D0
+00001908  4840                    1056      SWAP.W  D0                  ; SWAP WORDS D0
+0000190A  2080                    1057      MOVE.L  D0,(A0)             ; BRING IT BACK TO MEMORY
+0000190C  60D6                    1058      BRA     SORTBGNN            ; START FROM BEGGINING COMPARISON
+0000190E                          1059  ENDSORT
+0000190E                          1060    
+0000190E  4E75                    1061      RTS
+00001910                          1062  ;----------------------------------------------------------------
+00001910                          1063  ;              END      CMDSORTW
+00001910                          1064  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001910                          1065  
+00001910                          1066  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001910                          1067  ;                  CMDEXTRA1
+00001910                          1068  ;----------------------------------------------------------------
+00001910                          1069  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+00001910                          1070  ;         D0 = HEX NUMBER
+00001910                          1071  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+00001910                          1072  ;OUTPUT :                  
+00001910                          1073  ;         D0: UNCHANGED
+00001910                          1074  ;         D1: UNCHANGED
+00001910                          1075  ;         A1 AT END OF BUFFER +SPACE + 1 
+00001910                          1076  ;----------------------------------------------------------------
+00001910                          1077  CMDEXTRA1:
+00001910  43F9 00001A4D           1078      LEA COMP_TABL,A1
+00001916  103C 000D               1079      MOVE.B  #WRITESTRLF ,D0
+0000191A  4E4F                    1080      TRAP #15
+0000191C  4E75                    1081      RTS
+0000191E                          1082  ;----------------------------------------------------------------
+0000191E                          1083  ;              END      CMDEXTRA1
+0000191E                          1084  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+0000191E                          1085  
+0000191E                          1086  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+0000191E                          1087  ;                  CMDEXTRA2
+0000191E                          1088  ;----------------------------------------------------------------
+0000191E                          1089  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII
+0000191E                          1090  ;         D0 = HEX NUMBER
+0000191E                          1091  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+0000191E                          1092  ;OUTPUT :                  
+0000191E                          1093  ;         D0: UNCHANGED
+0000191E                          1094  ;         D1: UNCHANGED
+0000191E                          1095  ;         A1 AT END OF BUFFER +SPACE + 1 
+0000191E                          1096  ;----------------------------------------------------------------
+0000191E                          1097  CMDEXTRA2:
+0000191E  43F9 00001A4D           1098      LEA COMP_TABL,A1
+00001924  103C 000D               1099      MOVE.B  #WRITESTRLF ,D0
+00001928  4E4F                    1100      TRAP #15
+0000192A  4E75                    1101      RTS
+0000192C                          1102  ;----------------------------------------------------------------
+0000192C                          1103  ;              END      CMDEXTRA2
+0000192C                          1104  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+0000192C                          1105  
+0000192C                          1106  
+0000192C                          1107  
+0000192C                          1108  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+0000192C                          1109  ;                  CAPTURE2ADDR
+0000192C                          1110  ;----------------------------------------------------------------
+0000192C                          1111  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE ASCII ADDRESSES
+0000192C                          1112  ;            SEPARATED BY A SPACE
+0000192C                          1113  ;         D0 = 0 IF EVEN OR 1 IF NOT
+0000192C                          1114  ;         D1 = NUMBER OF BYTES YOU WANT TO CONVERT
+0000192C                          1115  ;OUTPUT :                  
+0000192C                          1116  ;         A2: FIRST ADDRESS
+0000192C                          1117  ;         A3: SECOND ADDRESS
+0000192C                          1118  ;         A1 AT END OF BUFFER +SPACE + 1 
+0000192C                          1119  ;----------------------------------------------------------------
+0000192C                          1120  
+0000192C                          1121  CAPTURE2ADDR:
+0000192C  48E7 6000               1122      MOVEM.L D1-D2,-(SP)
+00001930  3400                    1123      MOVE    D0,D2
+00001932  4EB8 10E8               1124      JSR     ASCI2HX
+00001936  4A40                    1125      TST     D0
+00001938  6D00 0030               1126      BLT     CAPTURE2ADDRERR
+0000193C  4A42                    1127      TST     D2
+0000193E  6600 0006               1128      BNE     ADDRNTEVEN1
+00001942  0201 00FE               1129      ANDI.B  #$FE,D1 ;MAKING SURE THAT ADDRESS ARE EVEN
+00001946                          1130  ADDRNTEVEN1:
+00001946  2441                    1131      MOVEA.L   D1,A2
+00001948  4EB8 10E8               1132      JSR     ASCI2HX
+0000194C  4A40                    1133      TST     D0
+0000194E  6D00 001A               1134      BLT     CAPTURE2ADDRERR
+00001952  4A42                    1135      TST     D2
+00001954  6600 0006               1136      BNE     ADDRNTEVEN2
+00001958  0201 00FE               1137      ANDI.B  #$FE,D1 ;MAKING SURE THAT ADDRESS ARE EVEN
+0000195C                          1138  ADDRNTEVEN2:
+0000195C  2641                    1139      MOVEA.L   D1,A3
+0000195E  B4CB                    1140      CMP     A3,A2
+00001960  6E00 0008               1141      BGT     CAPTURE2ADDRERR ;ERROR IF THE SECOND ADDRESS IS SMALLER THAN THE FIRST ONE   
+00001964  4CDF 0006               1142      MOVEM.L (SP)+,D1-D2
+00001968  4E75                    1143      RTS
+0000196A                          1144  CAPTURE2ADDRERR:
+0000196A  303C FFFF               1145      MOVE    #-1,D0
+0000196E  4CDF 0006               1146      MOVEM.L (SP)+,D1-D2
+00001972  4E75                    1147      RTS
+00001974                          1148  ;----------------------------------------------------------------
+00001974                          1149  ;              END      CAPTURE2ADDR
+00001974                          1150  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001974                          1151  
+00001974                          1152  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+00001974                          1153  ;                  PHYSICALADDR
+00001974                          1154  ;----------------------------------------------------------------
+00001974                          1155  ;INPUT  : A1 LOCATION IN MEMORY WHERE TO STORE HEX ADDRESSES
+00001974                          1156  ;         D0 = NUMBER OF ADDRESSES
+00001974                          1157  ;OUTPUT :                  
+00001974                          1158  ;         A2: FIRST ADDRESS
+00001974                          1159  ;         A3: SECOND ADDRESS
+00001974                          1160  ;         A1 AT END OF BUFFER +SPACE + 1 
+00001974                          1161  ;----------------------------------------------------------------
+00001974                          1162  
+00001974                          1163  PHYSICALADDR:
+00001974  48E7 2020               1164      MOVEM.L A2/D2,-(SP)
+00001978  3449                    1165      MOVEA   A1,A2
+0000197A  3400                    1166      MOVE    D0,D2
+0000197C  43F9 00001ACA           1167      LEA     PHYSICALSTR,A1
+00001982  103C 000E               1168      MOVE.B  #WRITESTR,D0
+00001986  4E4F                    1169      TRAP    #15
+00001988                          1170  PHYSICALADDRLOOP:
+00001988  43F9 00001A12           1171      LEA     BUFFINPUT ,A1
+0000198E  201A                    1172      MOVE.L  (A2)+, D0
+00001990  323C 0008               1173      MOVE    #8,D1
+00001994  4EB8 1148               1174      JSR     HX2ASCI
+00001998  12FC 0020               1175      MOVE.B  #$20,(A1)+   
+0000199C  12BC 0000               1176      MOVE.B  #$00,(A1)
+000019A0  43F9 00001A12           1177      LEA     BUFFINPUT,A1
+000019A6  103C 000E               1178      MOVE.B  #WRITESTR,D0
+000019AA  4E4F                    1179      TRAP    #15
+000019AC  5342                    1180      SUBI    #1,D2
+000019AE  6700 0004               1181      BEQ     ENDPHYSICALADDR
+000019B2  60D4                    1182      BRA     PHYSICALADDRLOOP
+000019B4                          1183  ENDPHYSICALADDR:
+000019B4  43F9 00001A12           1184      LEA     BUFFINPUT ,A1
+000019BA  12FC 0020               1185      MOVE.B  #$20,(A1)+
+000019BE  12BC 0000               1186      MOVE.B  #0,(A1)   
+000019C2  43F9 00001A12           1187      LEA     BUFFINPUT,A1
+000019C8  103C 000D               1188      MOVE.B  #WRITESTRLF,D0
+000019CC  4E4F                    1189      TRAP    #15
+000019CE  324A                    1190      MOVE    A2,A1
+000019D0  4CDF 0404               1191      MOVEM.L (SP)+,A2/D2
+000019D4  4E75                    1192      RTS
+000019D6                          1193  
+000019D6                          1194  ;----------------------------------------------------------------
+000019D6                          1195  ;              END      PHYSICALADDR
+000019D6                          1196  ;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+000019D6                          1197  
+000019D6                          1198  PRINTENTER:
+000019D6  43F9 00001A12           1199      LEA     BUFFINPUT,A1
+000019DC  12FC 0020               1200      MOVE.B  #$20,(A1)+
+000019E0  12FC 0000               1201      MOVE.B  #$00,(A1)+
+000019E4  43F9 00001A12           1202      LEA     BUFFINPUT,A1
+000019EA                          1203  
+000019EA  103C 000D               1204      MOVE.B  #WRITESTRLF ,D0
+000019EE  4E4F                    1205      TRAP    #15    
+000019F0  4E75                    1206      RTS
+000019F2                          1207  SYNTAXERR:
+000019F2  43F9 00001A89           1208      LEA     SYNTAXSTR,A1
+000019F8  103C 000D               1209      MOVE.B  #WRITESTRLF  ,D0
+000019FC  4E4F                    1210      TRAP #15
+000019FE  4E75                    1211      RTS
+00001A00                          1212  
+00001A00                          1213  
+00001A00                          1214  
+00001A00  FFFF FFFF               1215      SIMHALT             ; halt simulator
+00001A04= 4D 4F 4E 49 54 4F ...   1216  PROMPT      DC.B    'MONITOR441> '
+00001A10= 0000                    1217              DC.W    0
+00001A12                          1218  BUFFINPUT   DS.B    40
+00001A3A= 00                      1219              DC.B    0         
+00001A3C                          1220  BUFFADDR    DS.L    4
+00001A4C= 00                      1221              DC.B    0      
+00001A4D                          1222  COMP_TABL:
+00001A4D= 42 46 20                1223  BFSTR       DC.B    'BF '
+00001A50= 00                      1224              DC.B    0
+00001A51= 42 4D 4F 56 20          1225  BMOVSTR     DC.B    'BMOV '
+00001A56= 00                      1226              DC.B    0
+00001A57= 42 53 43 48 20          1227  BSCHSTR     DC.B    'BSCH '
+00001A5C= 00                      1228              DC.B    0
+00001A5D= 42 54 53 54 20          1229  BTSTSTR     DC.B    'BTST '
+00001A62= 00                      1230              DC.B    0
+00001A63= 44 46                   1231  DFSTR       DC.B    'DF'
+00001A65= 00                      1232              DC.B    0
+00001A66= 45 58 49 54             1233  EXITSTR     DC.B    'EXIT'
+00001A6A= 00                      1234              DC.B    0
+00001A6B= 47 4F 20                1235  GOSTR       DC.B    'GO '
+00001A6E= 00                      1236              DC.B    0
+00001A6F= 48 45 4C 50             1237  HELPSTR     DC.B    'HELP' 
+00001A73= 00                      1238              DC.B    0
+00001A74= 4D 44 53 50 20          1239  MDSPSTR     DC.B    'MDSP '
+00001A79= 00                      1240              DC.B    0
+00001A7A= 4D 4D 20                1241  MMSTR       DC.B    'MM '
+00001A7D= 00                      1242              DC.B    0
+00001A7E= 4D 53 20                1243  MSSTR       DC.B    'MS '
+00001A81= 00                      1244              DC.B    0
+00001A82= 53 4F 52 54 57 20       1245  SORTWSTR    DC.B    'SORTW '
+00001A88= 00                      1246              DC.B    0
+00001A89= 53 59 4E 54 41 58 ...   1247  SYNTAXSTR   DC.B    'SYNTAX ERROR, TYPE "HELP" FOR ASSISTANCE'
+00001AB1= 00                      1248              DC.B    0
+00001AB2= 13B2                    1249  COMP_ADDR   DC.W    CMDBF
+00001AB4= 13EC                    1250              DC.W    CMDBMOV
+00001AB6= 1454                    1251              DC.W    CMDBSCH
+00001AB8= 151A                    1252              DC.W    CMDBTST 
+00001ABA= 15AA                    1253              DC.W    CMDDF 
+00001ABC= 16BE                    1254              DC.W    CMDEXIT 
+00001ABE= 16D0                    1255              DC.W    CMDGO 
+00001AC0= 16E2                    1256              DC.W    CMDHELP  
+00001AC2= 16F0                    1257              DC.W    CMDMDSP 
+00001AC4= 1758                    1258              DC.W    CMDMM 
+00001AC6= 1848                    1259              DC.W    CMDMS 
+00001AC8= 18C2                    1260              DC.W    CMDSORTW
+00001ACA= 5048 5953 4943 4...     1261  PHYSICALSTR DC.W    'PHYSICAL ADDRESS='
+00001ADC= 00                      1262              DC.B    0
+00001ADE= AAAA 5555 5500 0...     1263  TESTBTST    DC.W    $AAAA,$5555,$5500,$0055,$AA00,$00AA,$0000
+00001AEC= 00                      1264              DC.B    0
+00001AED= 46 41 49 4C 45 44 ...   1265  BTSTERRSTR  DC.B    'FAILED AT '
+00001AF7                          1266  BTSTERRADDR DS.B    8
+00001AFF= 20 57 52 4F 54 45 3D    1267              DC.B    ' WROTE='
+00001B06                          1268  WROTEBTST   DS.B    4
+00001B0A= 20 52 45 41 44 3D       1269              DC.B    ' READ='
+00001B10                          1270  READBTST    DS.B    4
+00001B14= 00                      1271              DC.B    0
+00001B16= 2050 433D               1272  DFSTRING    DC.W    ' PC='
+00001B1A= 00                      1273              DC.B    0        
+00001B1B= 57 48 41 54 3F          1274  STRWHAT     DC.B    'WHAT?'
+00001B20= 0A                      1275              DC.B    $0A
+00001B21= 0D                      1276              DC.B    $0D
+00001B22= 00                      1277              DC.B    0
+00001B23= 30 31 32 33 34 35 ...   1278  STRASCII    DC.B    '0123456789ABCDEF'
+00001B33= 00                      1279              DC.B    0            
+00001B34= 48 45 4C 50 3A 20 ...   1280  HELPDISPLAY DC.B    'HELP: Display this msg',$D,$A
+00001B4C= 42 46 3A 20 46 69 ...   1281              DC.B    'BF: Fill memory range with word data',$D,$A
+00001B72= 42 46 20 3C 41 64 ...   1282              DC.B    'BF <Addr1> <Addr2> <W> e.g BF 800 900 4848<CR>',$D,$A
+00001BA2= 42 4D 4F 56 3A 20 ...   1283              DC.B    'BMOV: Move range of memory to location',$A,$D
+00001BCA= 42 4D 4F 56 20 3C ...   1284              DC.B    'BMOV <Addr1> <Addr2> <Dest> e.g BMOV 700 800 850<CR>',$D,$A
+00001C00= 42 53 43 48 3A 20 ...   1285              DC.B    'BSCH: Return first match for string in memory range',$A,$D
+00001C35= 42 53 43 48 20 3C ...   1286              DC.B    'BSCH <Addr1> <addr2> <Str> e.g BSCH 800 900 ',$27,'hi',$27,'<CR>',$D,$A
+00001C6B= 42 54 53 54 3A 20 ...   1287              DC.B    'BTST: Destructive R/W test in memory range',$A,$D
+00001C97= 42 54 53 54 20 3C ...   1288              DC.B    'BTST <Addr1> <Addr2> e.g BTST 800 950<CR>',$D,$A
+00001CC2= 44 46 3A 20 44 69 ...   1289              DC.B    'DF: Display values in reg: PC,SR,US,SP,D,A',$D,$A
+00001CEE= 47 4F 3A 20 53 74 ...   1290              DC.B    'GO: Start Execution at given address',$A,$D
+00001D14= 47 4F 20 3C 74 61 ...   1291              DC.B    'GO <target addr> e.g GO 900<CR>',$D,$A
+00001D35= 4D 44 53 50 3A 20 ...   1292              DC.B    'MDSP: Output Address and Memory Contents',$A,$D
+00001D5F= 4D 44 53 50 20 3C ...   1293              DC.B    'MDSP <Addr1> <Addr2> e.g MDSP 900 9D2<CR>',$D,$A        
+00001D8A= 4D 4D 3A 20 4D 6F ...   1294              DC.B    'MM: Modify memory manually ,default size byte',$A,$D
+00001DB9= 4D 4D 20 3C 61 64 ...   1295              DC.B    'MM <addr>;<sz> e.g MM 700<CR> OR MM 700;W<CR>',$D,$A
+00001DE8= 4D 53 3A 20 57 72 ...   1296              DC.B    'MS: Write bytes in memory in Hex or ASCII',$A,$D
+00001E13= 4D 53 20 3C 61 64 ...   1297              DC.B    'MS <addr> <data> e.g MS 600 ',$27,'hi',$27,'<CR> OR MS 600 35C<CR>',$D,$A
+00001E4B= 53 4F 52 54 57 3A ...   1298              DC.B    'SORTW: Sort words in asc or desc order (A or D) in mem range',$A,$D
+00001E89= 53 4F 52 54 57 20 ...   1299              DC.B    'SORTW <addr1> <addr2> <ord> e.g SORTW 600 600 D<CR>',$D,$A
+00001EBE= 45 58 49 54 3A 20 ...   1300              DC.B    'EXIT: Terminates Monitor Program',$A,$D          
+00001EE0= 0000                    1301              DC.W    0        
+00001EE2= 42 55 53 20 45 52 ...   1302  BUSERRSTR   DC.B    'BUS ERROR !',$A,$D   
+00001EEF= 00                      1303              DC.B    0
+00001EF0= 41 44 44 52 20 45 ...   1304  ADDRERRSTR  DC.B    'ADDR ERROR !',$A,$D   
+00001EFE= 00                      1305              DC.B    0
+00001EFF= 53 53 57 3D             1306  SSWSTR      DC.B    'SSW='
+00001F03                          1307  SSWINTSTR   DS.B    4
+00001F07= 20 42 41 3D             1308              DC.B    ' BA='
+00001F0B                          1309  BASTR       DS.B    8
+00001F13= 20 49 52 3D             1310              DC.B    ' IR='
+00001F17                          1311  IRSTR       DS.B    8
+00001F1F= 00                      1312              DC.B    0 
+00001F20= 00                      1313              DC.B    0
+00001F21= 44 49 56 2F 30 20 ...   1314  DIV0ERRSTR  DC.B    'DIV/0 ERROR AT LOCATION : '
+00001F3B= 00                      1315              DC.B    0
+00001F3C= 49 4C 4C 45 47 41 ...   1316  ILLERRSTR   DC.B    'ILLEGAL INST ERROR AT LOCATION : '
+00001F5D= 00                      1317              DC.B    0
+00001F5E= 50 52 49 56 49 4C ...   1318  PRVERRSTR   DC.B    'PRIVILEGE VIOLATION ERROR AT LOCATION : '
+00001F86= 00                      1319              DC.B    0
+00001F87= 43 48 45 43 4B 20 ...   1320  CHKERRSTR   DC.B    'CHECK ERROR AT LOCATION : '
+00001FA1= 00                      1321              DC.B    0
+00001FA2= 4C 49 4E 45 41 20 ...   1322  LINEASRT    DC.B    'LINEA ERROR AT LOCATION : '
+00001FBC= 00                      1323              DC.B    0  
+00001FBD= 4C 49 4E 45 46 20 ...   1324  LINEFSRT    DC.B    'LINEF ERROR AT LOCATION : '
+00001FD7= 00                      1325              DC.B    0
+00001FD8= 0000                    1326              DC.W    0
+00001FDA                          1327  
+00005000                          1328      ORG $5000
+00005000                          1329  EREDIV0:
+00005000  4240                    1330      CLR     D0
+00005002  80C1                    1331      DIVU    D1,D0
+00005004  82C0                    1332      DIVU    D0,D1
+00005006                          1333      
+00005100                          1334      ORG $5100
+00005100                          1335  ERRADDR:
+00005100  327C 3001               1336      MOVE.W  #$3001,A1 ;ODD ADDRESS
+00005104  22FC 00002222           1337      MOVE.L  #$2222,(A1)+
+0000510A                          1338      
+00005200                          1339      ORG $5200
+00005200                          1340  ERRBUS:
+00005200  1039 03000000           1341      MOVE.B  $03000000,D0
+00005206  6000 BDF8               1342      BRA     $1000
+0000520A                          1343  
+0000520A                          1344  
+00005300                          1345      ORG $5300
+00005300                          1346  
+00005300                          1347  ERRILL:
+00005300= 4AFA                    1348      DC.W    $4AFA
+00005302                          1349      
+00005400                          1350      ORG $5400
+00005400                          1351  ERRPRIV:
+00005400  027C 0700               1352      ANDI.W  #$0700,SR
+00005404  6000 BBFA               1353      BRA     $1000
+00005408                          1354      
+00005500                          1355      ORG $5500
+00005500                          1356  ERRCHK:
+00005500                          1357  
+00005500  3E3C 0040               1358      MOVE.W  #$40,D7
+00005504  3C3C 0030               1359      MOVE.W  #$30,D6
+00005508  4F86                    1360      CHK.W   D6,D7
+0000550A  6000 BAF4               1361      BRA     $1000
+0000550E                          1362  
+00005600                          1363      ORG $5600
+00005600                          1364  ERRLINEA:
+00005600= A000                    1365      DC.W    $A000
+00005602  6000 B9FC               1366      BRA     $1000
+00005700                          1367      ORG $5700
+00005700                          1368  ERRLINEF:
+00005700= F000                    1369      DC.W    $F000
+00005702  6000 B8FC               1370      BRA     $1000
+00005706                          1371  END:
+00005706                          1372      END    START                        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ADDRERR             11EA
+ADDRERRSTR          1EF0
+ADDRNTEVEN1         1946
+ADDRNTEVEN2         195C
+ASCI2HX             10E8
+ASCI2HXERR          113E
+ASCI2HXLOOP         110C
+ASCI2HXNOTDOL       1102
+ASCI2HXNXTST        1120
+BASH                104A
+BASTR               1F0B
+BFLOOP              13D8
+BFSTR               1A4D
+BMOVASC             1436
+BMOVDES             142A
+BMOVDESLP           142C
+BMOVSTR             1A51
+BSCHFOUND           14C6
+BSCHLOOP            1486
+BSCHLOOP2           148E
+BSCHLP              149A
+BSCHNOTFOUND        14B4
+BSCHSTR             1A57
+BTSTERR             1560
+BTSTERRADDR         1AF7
+BTSTERRSTR          1AED
+BTSTSTR             1A5D
+BUFFADDR            1A3C
+BUFFINPUT           1A12
+BUSERR              118A
+BUSERRSTR           1EE2
+CAPTURE2ADDR        192C
+CAPTURE2ADDRERR     196A
+CHKERRSTR           1F87
+CHKINSTERR          12FE
+CMDBF               13B2
+CMDBMOV             13EC
+CMDBSCH             1454
+CMDBTST             151A
+CMDDF               15AA
+CMDEXIT             16BE
+CMDEXTRA1           1910
+CMDEXTRA2           191E
+CMDGO               16D0
+CMDHELP             16E2
+CMDMDSP             16F0
+CMDMM               1758
+CMDMS               1848
+CMDSORTW            18C2
+CMPSTR              10B8
+CMPSTRGREATER       10D8
+CMPSTRLESS          10D2
+CMPSTRNX            10BE
+COMP_ADDR           1AB2
+COMP_TABL           1A4D
+DFHELPER            168C
+DFLOOP              166C
+DFSTR               1A63
+DFSTRING            1B16
+DIV0ERR             12C2
+DIV0ERRSTR          1F21
+END                 5706
+ENDASCI2HX          1140
+ENDASCI2HXNULL      1142
+ENDBMOV             143C
+ENDBSCH             1504
+ENDBTST             159C
+ENDCMPSTR           10DE
+ENDDF               16B8
+ENDMM               1846
+ENDMS               18C0
+ENDPARSER           10B6
+ENDPHYSICALADDR     19B4
+ENDSORT             190E
+EREDIV0             5000
+ERRADDR             5100
+ERRBUS              5200
+ERRCHK              5500
+ERRILL              5300
+ERRLINEA            5600
+ERRLINEF            5700
+ERRPRIV             5400
+EXITSTR             1A66
+GOSTR               1A6B
+HELPDISPLAY         1B34
+HELPSTR             1A6F
+HX2ASCI             1148
+HX2ASCIGT           116A
+HX2ASCINX           115A
+HX2ASCINXTST        1172
+ILLADRERR           124A
+ILLERRSTR           1F3C
+IRSTR               1F17
+LINEA               133A
+LINEASRT            1FA2
+LINEF               1376
+LINEFSRT            1FBD
+LOOPARSE            1076
+LOOPBSCH            14EE
+MDSP1ND             171A
+MDSPLOOP            1720
+MDSPSTR             1A74
+MMBYTE              1784
+MMBYTPR             17C2
+MMCONT              17D0
+MMLNGPR             17CE
+MMLONG              1796
+MMLOOP              179A
+MMMVBYT             182A
+MMMVLNG             1836
+MMMVWRD             1830
+MMPASS              183C
+MMSTR               1A7A
+MMWORD              178E
+MMWRDPR             17C8
+MSASCII             18A6
+MSASCIILOOP         18AC
+MSHEX               1876
+MSHEXNOTDOL         1874
+MSLOOPHX            1894
+MSPOSSITION         1888
+MSSTR               1A7E
+NEXTBTST            1540
+NXCMPSTR            10E2
+NXFN                109C
+PARSER              106C
+PARSERERR           10AA
+PHYSICALADDR        1974
+PHYSICALADDRLOOP    1988
+PHYSICALSTR         1ACA
+PRINTENTER          19D6
+PRIVERR             1286
+PROMPT              1A04
+PRVERRSTR           1F5E
+READBTST            1B10
+READSTR             2
+SORTASC             18F8
+SORTBGNN            18E4
+SORTCMP             18E6
+SORTWDESC           18E0
+SORTWSTR            1A82
+SSWINTSTR           1F03
+SSWSTR              1EFF
+START               1000
+STRASCII            1B23
+STRWHAT             1B1B
+SWAPSORT            1906
+SYNTAXERR           19F2
+SYNTAXSTR           1A89
+TESTBTST            1ADE
+WRITESTR            E
+WRITESTRLF          D
+WROTEBTST           1B06
