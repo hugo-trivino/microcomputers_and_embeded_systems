@@ -27,3 +27,10 @@ To see full description of the implementation please refer to the **Project_Repo
 | SORTW | Sort words in asc or desc order (A or D) in mem range | `SORTW <addr1> <addr2> <ord>` | `SORTW 600 600 D ` |
 | EXIT | Terminates Monitor Program |`EXIT` | `EXIT` |    
 
+## List of Exceptions Supported
+### Bus Error Exception
+### Address Error Exception
+### Illegal Instruction Exception
+### Privilege Violation Exception
+### Divide by Zero Exception
+### Line A and Line F Emulators for syscalls
