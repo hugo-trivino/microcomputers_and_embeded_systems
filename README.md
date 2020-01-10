@@ -13,6 +13,7 @@ To see full description of the implementation please refer to the **Project_Repo
 ## List of commands and their basic description
 
 | Name | Description | Usage | Example | 
+--- | --- | --- | ---
 | HELP | Display this table | `HELP` | `HELP` |
 | BF | Fill memory range with word data | `BF <Addr1> <Addr2> <W>` | `BF 800 900 4848` |
 | BMOV | Move range of memory to location | `BMOV<Addr1> <Addr2> <Dest>` | `BMOV 700 800 850` |
